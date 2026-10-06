@@ -9,7 +9,10 @@ from .core import AccessDenied, Actor, RecordService, fictional_records
 def make_handler(service: RecordService):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            parts = urlparse(self.path).path.strip("/").split("/")
+            path = urlparse(self.path).path
+            if path == "/healthz":
+                return self._json(200, {"status": "ok", "fixture": "fictional-only"})
+            parts = path.strip("/").split("/")
             if len(parts) != 2 or parts[0] != "records":
                 return self._json(404, {"error": "not_found"})
             actor_id = self.headers.get("X-Actor-Id", "").strip()

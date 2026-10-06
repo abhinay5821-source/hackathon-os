@@ -88,5 +88,15 @@ class PrivacyGateTests(unittest.TestCase):
         finally:
             server.shutdown(); server.server_close(); thread.join()
 
+    def test_health_endpoint_needs_no_test_identity(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(RecordService(fictional_records())))
+        thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/healthz") as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(json.loads(response.read()), {"status": "ok", "fixture": "fictional-only"})
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
+
 if __name__ == "__main__":
     unittest.main()
