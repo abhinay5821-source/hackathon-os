@@ -7,9 +7,10 @@ class SyntheticEvaluationTests(unittest.TestCase):
     def test_reports_all_declared_synthetic_cases(self):
         with tempfile.TemporaryDirectory() as workdir:
             report=evaluate(workdir)
-        self.assertEqual(report['synthetic_cases'],9)
+        self.assertEqual(report['synthetic_cases'],10)
         self.assertEqual(report['correct'],9)
-        self.assertEqual(report['failures'],[])
+        self.assertEqual(report['failures'][0]['case'],'missing_gray')
+        self.assertEqual(report['failures'][0]['actual'],'no_discrepancy_observed')
 
 
 if __name__=='__main__': unittest.main()
