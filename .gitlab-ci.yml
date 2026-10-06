@@ -1,0 +1,19 @@
+image: python:3.12-slim
+
+stages:
+  - test
+  - security
+
+unit_tests:
+  stage: test
+  script:
+    - PYTHONPATH=. python tests/test_privacygate.py
+
+privacy_gate:
+  stage: security
+  script:
+    - PYTHONPATH=. python -m privacygate.gate --output privacygate-report.json
+  artifacts:
+    when: always
+    paths:
+      - privacygate-report.json

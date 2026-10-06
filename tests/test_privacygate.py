@@ -3,10 +3,13 @@ import json
 import threading
 import urllib.error
 import urllib.request
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from http.server import ThreadingHTTPServer
 from privacygate.audit import audit
 from privacygate.core import AccessDenied, Actor, RecordService, fictional_records
 from privacygate.server import make_handler
+from privacygate.gate import run_gate
 
 class PrivacyGateTests(unittest.TestCase):
     def test_secure_fixture_enforces_role_isolation(self):
@@ -41,6 +44,17 @@ class PrivacyGateTests(unittest.TestCase):
     def test_unknown_defect_is_rejected(self):
         with self.assertRaises(ValueError):
             RecordService(fictional_records(), "disable_all_auth")
+
+    def test_ci_gate_writes_report_and_fails_on_seeded_leak(self):
+        with TemporaryDirectory() as directory:
+            secure_path = Path(directory) / "secure.json"
+            defect_path = Path(directory) / "defect.json"
+            self.assertEqual(run_gate(output=secure_path), 0)
+            self.assertTrue(json.loads(secure_path.read_text())["passed"])
+            self.assertEqual(run_gate("missing_student_scope", defect_path), 1)
+            defect_report = json.loads(defect_path.read_text())
+            self.assertFalse(defect_report["passed"])
+            self.assertEqual(defect_report["findings"][0]["probe"], "student-other")
 
     def test_http_api_allows_own_record_and_denies_other_student(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(RecordService(fictional_records())))

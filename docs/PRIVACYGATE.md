@@ -14,6 +14,14 @@ Demonstrate a caught regression:
 PYTHONPATH=. python -m privacygate.audit --seed-defect missing_guardian_scope
 ```
 
+Run the same fail-closed command used by the CI draft:
+
+```bash
+PYTHONPATH=. python -m privacygate.gate --output privacygate-report.json
+```
+
+The command exits `0` only when all seven probes match the policy and exits `1` when a seeded leak is detected. `.gitlab-ci.yml` runs this gate after the unit tests and retains the JSON report as an artifact. This configuration has been exercised locally only; it has not run in GitLab and does not satisfy the visible-pipeline requirement yet.
+
 Run the local fictional-record API:
 
 ```bash
