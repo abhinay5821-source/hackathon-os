@@ -3,8 +3,8 @@
 Draft PR: https://github.com/abhinay5821-source/hackathon-os/pull/1
 Branch: parcelproof/synthetic-baseline (not merged).
 
-Completed: runnable fixed-camera video baseline with bounded five-frame memory; timestamped PNG/JSON evidence and local HTML review page; uncertainty guards; synthetic missing, unchanged, occluded, dark, camera-shift and unstable-view fixtures; eight passing local automated tests; successful CLI execution; setup/test report and honest OpenCV submission draft. Runtime reports OpenCV 5.0.0; the installable wheel is pinned to 5.0.0.93. Synthetic checks only, no real-footage validation.
+Completed: runnable fixed-camera video baseline with bounded five-frame memory; timestamped PNG/JSON evidence and local HTML review page; uncertainty guards; six synthetic fixture types; and a private AES-256 S3 evidence uploader with input/path checks. Eleven local automated tests pass after clean dependency installation. The missing-item CLI and local bundle build succeeded. AWS tests use an injected fake client only; no live AWS operation or real-footage validation occurred.
 
-Next actionable step: cover localized obstruction and illumination drift, then design a separately testable private-S3 evidence adapter without provisioning resources. AWS deployment remains unimplemented; live validation needs authorized AWS resources/credentials and must not incur spending. Country/team/reuse and exact submission deliverables still require official verification. Not submission-ready.
+Next actionable step: cover localized obstruction and illumination drift. Live S3 validation, least-privilege IAM, retention and reviewer retrieval require authorized AWS resources/credentials and must not incur unapproved spending. Country/team/reuse and exact submission deliverables still require official verification. Not submission-ready.
 
 See docs/PARCELPROOF.md and docs/OPENCV_SUBMISSION_DRAFT.md. No registration, submission or cloud resources created.
