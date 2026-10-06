@@ -11,6 +11,7 @@ python -m pip install -r requirements.txt
 python -m parcelproof.fixtures demo-fixtures
 python -m parcelproof.baseline demo-fixtures/packing.avi demo-fixtures/missing.avi --output demo-evidence
 python -m unittest discover -s tests -v
+python -m parcelproof.evaluate_synthetic --output synthetic-report.json
 ```
 
 Open `demo-evidence/review.html`, or inspect `review.json`, `packing.png` and `returned.png`. Replace `missing.avi` with `unchanged.avi`, `occluded.avi`, `poor_light.avi`, `camera_shift.avi` or `unstable.avi` to exercise the other cases. All generated recordings are explicitly synthetic. Output folders contain no private footage by default.
@@ -33,7 +34,7 @@ Stable final views, visible border calibration marks, constant illumination and 
 
 ## Test report — 2026-10-06 UTC
 
-Executed locally after a clean dependency installation: `python -m unittest discover -s tests -v`. Eleven tests passed. Eight cover the vision baseline and three cover the S3 adapter: encrypted private upload parameters and exact evidence contents, incomplete-bundle rejection before upload, and unsafe case-ID rejection. Runtime reports OpenCV 5.0.0 and NumPy 2.3.5. The PyPI wheel is pinned as `opencv-python-headless==5.0.0.93`. CLI also ran successfully, exported one change region at 1.9 seconds and built a 13,226-byte evidence bundle for the synthetic missing-item case. These checks demonstrate narrow synthetic behavior and an isolated fake-client AWS contract, not accuracy on real parcels or successful AWS deployment. No live AWS test was run.
+Executed locally after a clean dependency installation: `python -m unittest discover -s tests -v`. Fourteen tests passed. The separate nine-case synthetic evaluation produced 8/9 expected outcomes. Its one failure is important: rearranging the same two items is incorrectly reported as `review_required`. Therefore the baseline is not suitable for deployment or business-value claims; item-level identity/counting is needed. Runtime reports OpenCV 5.0.0 and NumPy 2.3.5. These checks demonstrate narrow synthetic behavior and an isolated fake-client AWS contract, not accuracy on real parcels or successful AWS deployment. No live AWS test was run.
 
 ## Next build tasks
 
