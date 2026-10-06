@@ -27,6 +27,10 @@ class BaselineTests(unittest.TestCase):
         result=self.run_case('rearranged')
         self.assertEqual(result['status'],'no_discrepancy_observed')
         self.assertEqual(result['item_signatures']['packing'],result['item_signatures']['returned'])
+    def test_known_low_saturation_false_negative(self):
+        result=self.run_case('missing_gray')
+        self.assertEqual(result['status'],'no_discrepancy_observed')
+        self.assertEqual(result['item_signatures']['packing'],result['item_signatures']['returned'])
     def test_occluded_abstains(self): self.assertEqual(self.run_case('occluded')['status'],'uncertain')
     def test_dark_abstains(self): self.assertEqual(self.run_case('poor_light')['status'],'uncertain')
     def test_localized_obstruction_abstains(self):
