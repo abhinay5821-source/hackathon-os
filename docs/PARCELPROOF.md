@@ -26,7 +26,7 @@ That command uses the standard AWS credential chain and performs a real upload, 
 
 ## Architecture
 
-Streaming video decoding with only the final five frames retained → final-view stability score → median frame → lighting/occlusion/calibration-border guards → thresholded pixel differences and connected regions → JSON, annotated evidence PNGs and local HTML review page. A marked-border comparison is a limited fixed-camera check, not geometric registration. Timestamps identify the last decoded frame; the image is a temporal median of the final frames.
+Streaming video decoding with only the final five frames retained → final-view stability score → median frame → lighting/occlusion/calibration-border guards → position-independent color/area component signatures → pixel-difference evidence only when signatures differ → JSON, annotated evidence PNGs and local HTML review page. A marked-border comparison is a limited fixed-camera check, not geometric registration. Signatures are not product recognition.
 
 ## Limits
 
@@ -34,7 +34,7 @@ Stable final views, visible border calibration marks, constant illumination and 
 
 ## Test report — 2026-10-06 UTC
 
-Executed locally after a clean dependency installation: `python -m unittest discover -s tests -v`. Fourteen tests passed. The separate nine-case synthetic evaluation produced 8/9 expected outcomes. Its one failure is important: rearranging the same two items is incorrectly reported as `review_required`. Therefore the baseline is not suitable for deployment or business-value claims; item-level identity/counting is needed. Runtime reports OpenCV 5.0.0 and NumPy 2.3.5. These checks demonstrate narrow synthetic behavior and an isolated fake-client AWS contract, not accuracy on real parcels or successful AWS deployment. No live AWS test was run.
+Executed locally after a clean dependency installation: `python -m unittest discover -s tests -v`. Fifteen tests passed. The separate nine-case synthetic evaluation produced 9/9 declared outcomes; position-independent color/area components corrected the earlier rearrangement false alarm while retaining the missing-item flag. This is not product identity: overlapping, low-saturation or visually similar items can merge or collide, and thresholds were exercised only on generated scenes. These checks demonstrate narrow synthetic behavior and an isolated fake-client AWS contract, not accuracy on real parcels or successful AWS deployment. No live AWS test was run.
 
 ## Next build tasks
 
