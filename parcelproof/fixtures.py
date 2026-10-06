@@ -14,11 +14,16 @@ def generate(directory):
     cv2.rectangle(base,(60,65),(115,130),(40,100,220),-1)
     cv2.rectangle(base,(190,65),(240,130),(200,70,40),-1)
     missing=base.copy(); missing[65:131,190:241]=180
+    rearranged=base.copy()
+    rearranged[65:131,60:116]=180; rearranged[65:131,190:241]=180
+    cv2.rectangle(rearranged,(190,65),(245,130),(40,100,220),-1)
+    cv2.rectangle(rearranged,(60,65),(110,130),(200,70,40),-1)
     occluded=base.copy(); occluded[35:205,30:290]=20
     shifted=np.roll(base,12,axis=1); shifted[:,:12]=180
     local_occlusion=base.copy(); local_occlusion[60:140,185:245]=20
     brighter=np.clip(base.astype(np.int16)+45,0,255).astype(np.uint8)
     cases={'packing':[base]*20,'unchanged':[base]*20,'missing':[missing]*20,
+           'rearranged':[rearranged]*20,
            'occluded':[occluded]*20,'poor_light':[(base*.15).astype(np.uint8)]*20,
            'camera_shift':[shifted]*20,
            'localized_occlusion':[local_occlusion]*20,'illumination_drift':[brighter]*20,
