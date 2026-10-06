@@ -19,7 +19,7 @@ def reference() -> np.ndarray:
 
 
 def scenario(name: str, count: int = 30) -> list[np.ndarray]:
-    known = {"clear", "persistent_box", "transient_passage", "intermittent_obstruction", "outside_route", "poor_light", "gradual_dimming", "global_occlusion", "camera_shift", "slow_camera_drift", "shadow"}
+    known = {"clear", "persistent_box", "transient_passage", "intermittent_obstruction", "outside_route", "poor_light", "gradual_dimming", "global_occlusion", "camera_shift", "slow_camera_drift", "camera_vibration", "shadow", "persistent_reflection"}
     if name not in known:
         raise ValueError(f"Unknown synthetic scenario: {name}")
     base = reference()
@@ -48,10 +48,16 @@ def scenario(name: str, count: int = 30) -> list[np.ndarray]:
             shift = index // 3
             matrix = np.float32([[1, 0, shift], [0, 1, 0]])
             frame = cv2.warpAffine(frame, matrix, (frame.shape[1], frame.shape[0]), borderValue=(0, 0, 0))
+        elif name == "camera_vibration":
+            shift = 7 if index % 2 else -7
+            matrix = np.float32([[1, 0, shift], [0, 1, 0]])
+            frame = cv2.warpAffine(frame, matrix, (frame.shape[1], frame.shape[0]), borderValue=(0, 0, 0))
         elif name == "shadow":
             overlay = frame.copy()
             cv2.rectangle(overlay, (75, 40), (165, 120), (115, 115, 115), -1)
             frame = cv2.addWeighted(overlay, 0.35, frame, 0.65, 0)
+        elif name == "persistent_reflection":
+            cv2.ellipse(frame, (120, 82), (32, 18), 0, 0, 360, (255, 255, 255), -1)
         frames.append(frame)
     return frames
 
@@ -60,7 +66,7 @@ def write_fixture_set(directory: Path, fps: float = 10.0) -> None:
     """Write synthetic AVI clips and their clear reference image."""
     directory.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(directory / "reference.png"), reference())
-    for name in ("clear", "persistent_box", "transient_passage", "intermittent_obstruction", "outside_route", "poor_light", "gradual_dimming", "global_occlusion", "camera_shift", "slow_camera_drift", "shadow"):
+    for name in ("clear", "persistent_box", "transient_passage", "intermittent_obstruction", "outside_route", "poor_light", "gradual_dimming", "global_occlusion", "camera_shift", "slow_camera_drift", "camera_vibration", "shadow", "persistent_reflection"):
         writer = cv2.VideoWriter(
             str(directory / f"{name}.avi"),
             cv2.VideoWriter_fourcc(*"MJPG"),

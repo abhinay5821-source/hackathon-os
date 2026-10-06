@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 
 from clearroute.analyze import AnalysisConfig, analyze_frames, analyze_video
 from clearroute.fixtures import ROUTE, reference, scenario, write_fixture_set
+from clearroute.review import write_review
 
 
 class ClearRouteTests(unittest.TestCase):
@@ -52,6 +53,13 @@ class ClearRouteTests(unittest.TestCase):
         result = self.result("slow_camera_drift")
         self.assertEqual((result["status"], result["reason"]), ("uncertain", "camera_shift"))
 
+    def test_camera_vibration_is_uncertain(self):
+        self.assertEqual(self.result("camera_vibration")["status"], "uncertain")
+
+    def test_persistent_reflection_exposes_known_false_alert(self):
+        # Deliberately records a current limitation; this is not a success metric.
+        self.assertEqual(self.result("persistent_reflection")["status"], "review_required")
+
     def test_empty_stream_is_uncertain(self):
         self.assertEqual(analyze_frames(reference(), [], self.config)["status"], "uncertain")
 
@@ -67,6 +75,17 @@ class ClearRouteTests(unittest.TestCase):
             self.assertEqual(result["status"], "review_required")
             self.assertTrue(output.exists())
             self.assertTrue(output.with_suffix(".evidence.png").exists())
+
+    def test_offline_review_page_embeds_evidence(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture_set(root)
+            result_path = root / "result.json"
+            analyze_video(root / "reference.png", root / "persistent_box.avi", result_path, self.config)
+            review_path = write_review(result_path, root / "review.html")
+            page = review_path.read_text(encoding="utf-8")
+            self.assertIn("data:image/png;base64,", page)
+            self.assertIn("human review", page.lower())
 
 
 if __name__ == "__main__":
