@@ -1,0 +1,91 @@
+"""Narrow fixed-camera baseline; visible changes are not proof of fraud."""
+import argparse
+import json
+from pathlib import Path
+import cv2
+import numpy as np
+
+
+def snapshot(path):
+    cap = cv2.VideoCapture(str(path))
+    frames = []
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    try:
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                break
+            frames.append(frame)
+    finally:
+        cap.release()
+    if not frames or fps <= 0:
+        raise ValueError(f'Unreadable video: {path}')
+    shapes = {f.shape for f in frames}
+    if len(shapes) != 1:
+        raise ValueError('Inconsistent frame dimensions')
+    # Final stable view: hand movement earlier in a clip is outside this scope.
+    tail = frames[-min(5, len(frames)):]
+    return np.median(tail, axis=0).astype(np.uint8), (len(frames)-1)/fps
+
+
+def analyze(packing, returned, output):
+    if Path(packing).resolve() == Path(returned).resolve():
+        raise ValueError('Two different recordings are required')
+    a, ta = snapshot(packing)
+    b, tb = snapshot(returned)
+    out = Path(output)
+    out.mkdir(parents=True, exist_ok=True)
+    reasons = []
+    if a.shape != b.shape:
+        reasons.append('Frame dimensions differ; alignment unavailable')
+    for f in (a, b):
+        gray = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY)
+        if np.mean(gray) < 45:
+            reasons.append('Insufficient lighting')
+        # Conservative guard for broad obstruction of the calibrated background.
+        if np.mean(gray < 55) > .30:
+            reasons.append('Possible broad occlusion')
+    boxes = []
+    if not reasons:
+        ga = cv2.cvtColor(a, cv2.COLOR_BGR2GRAY)
+        gb = cv2.cvtColor(b, cv2.COLOR_BGR2GRAY)
+        # Background border is the alignment check, not inferred camera registration.
+        border = np.ones(ga.shape, dtype=bool)
+        border[20:-20, 20:-20] = False
+        if np.mean(cv2.absdiff(ga, gb)[border]) > 12:
+            reasons.append('Background changed; fixed-camera alignment unverified')
+        else:
+            mask = (cv2.absdiff(a,b).max(axis=2) > 35).astype(np.uint8)*255
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3),np.uint8))
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for c in contours:
+                if cv2.contourArea(c) >= 100:
+                    boxes.append(list(cv2.boundingRect(c)))
+    annotated = b.copy()
+    for x,y,w,h in boxes:
+        cv2.rectangle(annotated,(x,y),(x+w,y+h),(0,0,255),2)
+    cv2.imwrite(str(out/'packing.png'), a)
+    cv2.imwrite(str(out/'returned.png'), annotated)
+    result = {'status': 'uncertain' if reasons else ('review_required' if boxes else 'no_discrepancy_observed'),
+              'packing_seconds': ta, 'return_seconds': tb, 'changed_regions': boxes,
+              'uncertainty_reasons': sorted(set(reasons)), 'opencv_version': cv2.__version__,
+              'evidence_frames': ['packing.png','returned.png'],
+              'limitations': ['Calibrated fixed camera and stable final view only',
+                              'Visible change only: no item identity, damage or fraud determination',
+                              'Local occlusion and camera shifts may evade these conservative guards',
+                              'Synthetic evaluation is not real-world validation']}
+    (out/'review.json').write_text(json.dumps(result,indent=2)+'\n')
+    return result
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('packing'); p.add_argument('returned'); p.add_argument('--output',default='evidence')
+    args=p.parse_args()
+    try:
+        print(json.dumps(analyze(args.packing,args.returned,args.output),indent=2))
+    except ValueError as e:
+        p.exit(2,str(e)+'\n')
+
+if __name__ == '__main__':
+    main()
