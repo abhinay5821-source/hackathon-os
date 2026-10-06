@@ -8,9 +8,9 @@ Parcel reviewers often need to compare packing and return recordings manually. P
 
 Four explicitly synthetic scenes: unchanged parcel view, removed colored object, broad obstruction and poor light. Six automated checks pass. No real-world accuracy or time-saving claim has been measured. The implementation is a deterministic pixel baseline, not semantic item recognition.
 
-## Proposed AWS architecture — unimplemented
+## AWS architecture — adapter implemented, deployment unvalidated
 
-Local OpenCV analysis → structured evidence bundle → private S3 evidence storage → authorized reviewer retrieval. Cloud integration must be implemented and exercised before claiming sponsor fit. No AWS resources were created, credentials supplied or cloud tests run.
+Local OpenCV analysis → ZIP containing only the JSON, HTML and two evidence images → private S3 object using AES-256 server-side encryption → authorized reviewer retrieval. The uploader and its fake-client contract tests are implemented. No AWS resources were created, credentials supplied or live cloud tests run. IAM policy, bucket policy, retention and retrieval remain unvalidated, so this is not yet a demonstrated AWS deployment.
 
 ## Demo script
 
@@ -33,7 +33,8 @@ Participants must be 13+ and each team member eligible. User self-reports above 
 - [x] Runnable local OpenCV 5 baseline and synthetic fixtures
 - [x] Executed tests and honest test report
 - [x] Description, architecture, limitations and demo script
-- [ ] Meaningful working AWS integration and repeatable validation
+- [x] Testable private/encrypted S3 evidence uploader
+- [ ] Live AWS deployment, least-privilege IAM, retention/retrieval and repeatable validation
 - [ ] Consent-based real-footage evaluation
 - [ ] Stronger stability/alignment/visibility guards
 - [ ] Confirm India, team, reuse and exact deliverable rules
