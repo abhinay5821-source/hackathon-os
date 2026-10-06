@@ -25,6 +25,12 @@ class BaselineTests(unittest.TestCase):
     def test_unchanged(self): self.assertEqual(self.run_case('unchanged')['status'],'no_discrepancy_observed')
     def test_occluded_abstains(self): self.assertEqual(self.run_case('occluded')['status'],'uncertain')
     def test_dark_abstains(self): self.assertEqual(self.run_case('poor_light')['status'],'uncertain')
+    def test_localized_obstruction_abstains(self):
+        result=self.run_case('localized_occlusion')
+        self.assertEqual(result['status'],'uncertain')
+        self.assertEqual(result['changed_regions'],[])
+    def test_illumination_drift_abstains(self):
+        self.assertEqual(self.run_case('illumination_drift')['status'],'uncertain')
     def test_camera_shift_abstains(self):
         result=self.run_case('camera_shift')
         self.assertEqual(result['status'],'uncertain')
