@@ -23,6 +23,12 @@ class ClearRouteTests(unittest.TestCase):
         self.assertEqual(result["status"], "review_required")
         self.assertIsNotNone(result["evidence_timestamp_seconds"])
 
+    def test_stable_white_box_requires_review(self):
+        self.assertEqual(self.result("white_box")["status"], "review_required")
+
+    def test_colored_box_with_glare_requires_review(self):
+        self.assertEqual(self.result("box_with_glare")["status"], "review_required")
+
     def test_transient_passage_does_not_alert(self):
         self.assertEqual(self.result("transient_passage")["status"], "clear")
 
@@ -76,6 +82,17 @@ class ClearRouteTests(unittest.TestCase):
             self.assertEqual(result["status"], "review_required")
             self.assertTrue(output.exists())
             self.assertTrue(output.with_suffix(".evidence.png").exists())
+
+    def test_encoded_video_preserves_reflection_white_object_distinction(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture_set(root)
+            reflection = analyze_video(root / "reference.png", root / "persistent_reflection.avi", root / "reflection.json", self.config)
+            white_box = analyze_video(root / "reference.png", root / "white_box.avi", root / "white-box.json", self.config)
+            glare = analyze_video(root / "reference.png", root / "box_with_glare.avi", root / "glare.json", self.config)
+            self.assertEqual(reflection["status"], "uncertain")
+            self.assertEqual(white_box["status"], "review_required")
+            self.assertEqual(glare["status"], "review_required")
 
     def test_offline_review_page_embeds_evidence(self):
         with TemporaryDirectory() as directory:

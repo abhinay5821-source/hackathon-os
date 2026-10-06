@@ -2,12 +2,14 @@
 
 Environment: Python 3.12, NumPy 2.3.5, OpenCV headless 5.0.0.93. Command: `python -m unittest discover -s tests -v`.
 
-Result: **18 tests passed**. This is generated-fixture evaluation, not real-camera validation; test count is not detection accuracy.
+Result: **21 tests passed**. This is generated-fixture evaluation, not real-camera validation; test count is not detection accuracy.
 
 | Synthetic condition | Expected behavior | Observed |
 |---|---|---|
 | Clear route | `clear` | Pass |
 | Persistent in-route box | `review_required` with timestamp/image | Pass |
+| Stable white box | `review_required`, not reflection uncertainty | Pass |
+| Colored box with fluctuating glare | `review_required` | Pass |
 | Transient passage | `clear` | Pass |
 | Intermittent short blockages | `clear` under current persistence rule | Pass |
 | Object outside route | `clear` | Pass |
@@ -21,7 +23,8 @@ Result: **18 tests passed**. This is generated-fixture evaluation, not real-came
 | Persistent bright reflection | avoid false blockage alert | `uncertain` (`possible_reflection`) |
 | Empty stream | `uncertain` | Pass |
 | AVI-to-result/evidence path | JSON and marked PNG written | Pass |
+| Encoded AVI reflection/white-object distinction | reflection uncertain; white/glare boxes review | Pass |
 | Offline reviewer page | self-contained HTML with embedded evidence | Pass |
 | Reviewer decision record | bounded decision, no identity field | Pass |
 
-These cases are deliberately simple. They do not measure precision, recall, false-alert rate or reviewer time on real footage. Varied reflections, white physical obstructions, crowds, weather, compression damage and changed furniture remain untested. The reflection rule is intentionally conservative: it can trade a false alert for an uncertain result and still needs real validation.
+These cases are deliberately simple. They do not measure precision, recall, false-alert rate or reviewer time on real footage. Varied reflections and white objects, crowds, weather, compression damage and changed furniture remain untested. The reflection rule combines brightness, low saturation and temporal fluctuation; it still needs real validation.

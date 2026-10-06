@@ -24,7 +24,7 @@ The unit suite generates arrays rather than using real footage. Cases cover a cl
 ## Known limitations
 
 - The asserted synthetic shadow is simple and does not represent varied real shadows.
-- A persistent bright synthetic reflection is now downgraded to `uncertain`. This is conservative and may also mark a white obstruction uncertain, so it is not true reflection understanding.
+- A bright, low-saturation change must also fluctuate over time before it is labeled `possible_reflection`. The synthetic stable white box and colored box with glare still require review. This remains a heuristic, not reflection understanding.
 - Scene rearrangement, varied reflections, crowds, weather and compression damage remain untested.
 - Evidence metadata, a marked frame, offline reviewer page and local decision record are implemented.
 - No AWS component is implemented or validated.
