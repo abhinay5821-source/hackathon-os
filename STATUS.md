@@ -9,7 +9,8 @@
 - Implemented evidence: first persistent frame number, timestamp, occupancy series, marked PNG, self-contained offline review page and local reviewer decision record.
 - Reflection mitigation: bright low-saturation change must fluctuate temporally to return `uncertain`. Stable white obstruction and a colored obstruction with glare remain `review_required` in synthetic tests.
 - Not implemented: AWS, live endpoint, real-footage validation or calibrated reflection classification.
+- Submission materials: honest description, current/proposed architecture, limitations, five-minute demo script and remaining gate drafted in `docs/OPENCV_SUBMISSION_DRAFT.md`.
 
 ## Next actionable step
 
-Prepare the honest submission description, architecture, limitations, demo script and remaining-deliverables checklist. Keep AWS and real-footage validation marked incomplete.
+Implement the smallest meaningful AWS evidence/review path only after credentials and spending boundaries are available; otherwise continue local real-footage planning. Confirm India, team-size and reuse terms during registration before submission.
