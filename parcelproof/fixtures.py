@@ -8,15 +8,22 @@ import numpy as np
 def generate(directory):
     root=Path(directory); root.mkdir(parents=True,exist_ok=True)
     base=np.full((240,320,3),180,dtype=np.uint8)
+    # Synthetic calibration marks make fixed-camera shifts observable at the border.
+    for point in ((10,10),(310,10),(10,230),(310,230)):
+        cv2.circle(base,point,5,(20,20,20),-1)
     cv2.rectangle(base,(60,65),(115,130),(40,100,220),-1)
     cv2.rectangle(base,(190,65),(240,130),(200,70,40),-1)
     missing=base.copy(); missing[65:131,190:241]=180
     occluded=base.copy(); occluded[35:205,30:290]=20
-    cases={'packing':base,'unchanged':base,'missing':missing,'occluded':occluded,'poor_light':(base*.15).astype(np.uint8)}
-    for name,frame in cases.items():
+    shifted=np.roll(base,12,axis=1); shifted[:,:12]=180
+    cases={'packing':[base]*20,'unchanged':[base]*20,'missing':[missing]*20,
+           'occluded':[occluded]*20,'poor_light':[(base*.15).astype(np.uint8)]*20,
+           'camera_shift':[shifted]*20,
+           'unstable':[base if i % 2 else np.roll(base,18,axis=1) for i in range(20)]}
+    for name,frames in cases.items():
         writer=cv2.VideoWriter(str(root/(name+'.avi')),cv2.VideoWriter_fourcc(*'MJPG'),10,(320,240))
         if not writer.isOpened(): raise RuntimeError('MJPG encoder unavailable')
-        for _ in range(20): writer.write(frame)
+        for frame in frames: writer.write(frame)
         writer.release()
     (root/'SYNTHETIC.txt').write_text('All videos are generated synthetic scenes. No real-world validation.\n')
     return root
