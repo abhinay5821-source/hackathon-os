@@ -8,7 +8,7 @@ Parcel reviewers often need to compare packing and return recordings manually. P
 
 Four explicitly synthetic scenes: unchanged parcel view, removed colored object, broad obstruction and poor light. Six automated checks pass. No real-world accuracy or time-saving claim has been measured. The implementation is a deterministic pixel baseline, not semantic item recognition.
 
-The expanded nine-case synthetic evaluation now achieves 9/9 declared outcomes after adding position-independent color/area component signatures. This corrects the measured harmless-rearrangement false alarm in generated scenes. It is not semantic product recognition and may fail on overlapping, low-saturation or visually similar items; no real-world accuracy or time-saving claim is made. The customer-unboxing workflow has been rejected; any continued entry should target an existing staff-operated packing station.
+The expanded ten-case synthetic evaluation achieves 9/10 expected outcomes. Position-independent color/area signatures correct the harmless-rearrangement false alarm, but the system misses removal of a low-saturation gray item and reports no discrepancy. This false negative confirms that the method is not semantic product recognition. No real-world accuracy or time-saving claim is made. The customer-unboxing workflow has been rejected; even the staff-operated packing-station direction is not credible without a stronger recognition method.
 
 ## AWS architecture — adapter implemented, deployment unvalidated
 
