@@ -10,6 +10,7 @@ from parcelproof.fixtures import generate
 EXPECTED = {
     'unchanged': 'no_discrepancy_observed',
     'missing': 'review_required',
+    'missing_gray': 'review_required',
     # Same two items, different positions: a correct semantic system should not flag loss.
     'rearranged': 'no_discrepancy_observed',
     'occluded': 'uncertain',
