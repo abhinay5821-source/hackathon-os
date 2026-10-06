@@ -76,9 +76,14 @@ def analyze(packing, returned, output):
         border = np.ones(ga.shape, dtype=bool)
         border[20:-20, 20:-20] = False
         border_delta = cv2.absdiff(ga, gb)[border]
+        newly_dark = (gb < 55) & (ga >= 55)
+        dark_contours, _ = cv2.findContours(newly_dark.astype(np.uint8)*255,
+                                            cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if any(cv2.contourArea(c) >= 400 for c in dark_contours):
+            reasons.append('Possible localized obstruction or dark object; identity unresolved')
         if np.mean(border_delta > 20) > .002:
             reasons.append('Background changed; fixed-camera alignment unverified')
-        else:
+        if not reasons:
             mask = (cv2.absdiff(a,b).max(axis=2) > 35).astype(np.uint8)*255
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3),np.uint8))
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
