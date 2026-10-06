@@ -24,6 +24,11 @@ class ClearRouteTests(unittest.TestCase):
     def test_transient_passage_does_not_alert(self):
         self.assertEqual(self.result("transient_passage")["status"], "clear")
 
+    def test_intermittent_obstruction_does_not_meet_persistence_gate(self):
+        result = self.result("intermittent_obstruction")
+        self.assertEqual(result["status"], "clear")
+        self.assertLess(result["longest_obstruction_frames"], self.config.persistence_frames)
+
     def test_outside_route_is_ignored(self):
         self.assertEqual(self.result("outside_route")["status"], "clear")
 
@@ -35,8 +40,16 @@ class ClearRouteTests(unittest.TestCase):
         result = self.result("global_occlusion")
         self.assertEqual(result["status"], "uncertain")
 
+    def test_gradual_dimming_becomes_uncertain_not_review_required(self):
+        result = self.result("gradual_dimming")
+        self.assertEqual(result["status"], "uncertain")
+
     def test_camera_shift_is_uncertain(self):
         result = self.result("camera_shift")
+        self.assertEqual((result["status"], result["reason"]), ("uncertain", "camera_shift"))
+
+    def test_slow_camera_drift_becomes_uncertain(self):
+        result = self.result("slow_camera_drift")
         self.assertEqual((result["status"], result["reason"]), ("uncertain", "camera_shift"))
 
     def test_empty_stream_is_uncertain(self):

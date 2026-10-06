@@ -17,7 +17,7 @@ The fixture command writes explicitly synthetic MJPG/AVI clips. The analyzer CLI
 
 ## Synthetic evaluation
 
-The unit suite generates arrays rather than using real footage. Cases cover a clear route, persistent box, transient passage, outside-route object, poor light, global occlusion and camera shift. Passing these tests is only a feasibility result, not real-world validation.
+The unit suite generates arrays rather than using real footage. Cases cover a clear route, persistent box, transient and intermittent blockage, outside-route object, simple shadow, gradual dimming, poor light, global occlusion, abrupt camera shift and slow camera drift. Passing these tests is only a feasibility result, not real-world validation.
 
 ## Known limitations
 
