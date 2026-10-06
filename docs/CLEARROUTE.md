@@ -17,6 +17,12 @@ python -m clearroute.decision result.json dismissed --note "Reflection on route"
 
 The fixture command writes explicitly synthetic MJPG/AVI clips. The analyzer CLI writes the status, reason, frame occupancy series, first evidence frame and timestamp to JSON, plus an annotated `.evidence.png` for a review event. The review command embeds the result and evidence in a self-contained offline HTML page. The decision command records one bounded human outcome without reviewer identity or automatic action. The default route rectangle is a prototype constant; a real deployment needs a reviewed per-camera polygon and calibration workflow.
 
+## Local reviewer endpoint
+
+Set a temporary token and run `CLEARROUTE_REVIEW_TOKEN='replace-with-a-long-random-value' python -m clearroute.server result.json`. The service binds to `127.0.0.1:8080` by default. `GET /review` and `POST /decision` require an `Authorization: Bearer <token>` header.
+
+The endpoint uses constant-time token comparison, disables caching and accepts only those fixed routes. It is for a controlled local demonstration or arranged screen-share. It has no TLS, user accounts, rate limiting, session management or public-hosting hardening.
+
 ## Synthetic evaluation
 
 The unit suite generates arrays rather than using real footage. Cases cover a clear route, persistent box, transient and intermittent blockage, outside-route object, simple shadow, gradual dimming, poor light, global occlusion, abrupt camera shift and slow camera drift. Passing these tests is only a feasibility result, not real-world validation.

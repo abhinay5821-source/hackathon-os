@@ -1,5 +1,9 @@
 import json
+import threading
 import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -8,6 +12,7 @@ from clearroute.aws_publish import publish_review_event
 from clearroute.decision import record_decision
 from clearroute.fixtures import ROUTE, reference, scenario, write_fixture_set
 from clearroute.review import write_review
+from clearroute.server import make_handler
 
 
 class ClearRouteTests(unittest.TestCase):
@@ -177,6 +182,46 @@ class ClearRouteTests(unittest.TestCase):
         actions = {action for statement in statements for action in statement["Action"]}
         self.assertEqual(actions, {"s3:PutObject", "dynamodb:PutItem"})
         self.assertEqual(statements[0]["Resource"]["Fn::Sub"], "${EvidenceBucket.Arn}/events/*")
+
+    def test_review_endpoint_requires_token_and_records_decision(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory); result = root / "result.json"; decision = root / "decision.json"
+            result.write_text('{"status":"review_required","reason":"persistent_route_obstruction"}', encoding="utf-8")
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(result, decision, "test-token"))
+            thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+            base = f"http://127.0.0.1:{server.server_port}"
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as missing: urllib.request.urlopen(base + "/review")
+                self.assertEqual(missing.exception.code, 401)
+                wrong = urllib.request.Request(base + "/review", headers={"Authorization": "Bearer wrong"})
+                with self.assertRaises(urllib.error.HTTPError) as denied: urllib.request.urlopen(wrong)
+                self.assertEqual(denied.exception.code, 401)
+                request = urllib.request.Request(base + "/review", headers={"Authorization": "Bearer test-token"})
+                with urllib.request.urlopen(request) as response: self.assertIn(b"ClearRoute human review", response.read())
+                body = json.dumps({"decision": "dismissed", "note": "Synthetic test"}).encode()
+                request = urllib.request.Request(base + "/decision", data=body, method="POST", headers={"Authorization": "Bearer test-token", "Content-Type": "application/json"})
+                with urllib.request.urlopen(request) as response: self.assertEqual(response.status, 201)
+                self.assertEqual(json.loads(decision.read_text())["review_decision"], "dismissed")
+            finally:
+                server.shutdown(); server.server_close(); thread.join()
+
+    def test_review_endpoint_rejects_unknown_route_and_decision(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory); result = root / "result.json"
+            result.write_text('{"status":"review_required"}', encoding="utf-8")
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(result, root / "decision.json", "token"))
+            thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+            base = f"http://127.0.0.1:{server.server_port}"
+            try:
+                request = urllib.request.Request(base + "/other", headers={"Authorization": "Bearer token"})
+                with self.assertRaises(urllib.error.HTTPError) as missing: urllib.request.urlopen(request)
+                self.assertEqual(missing.exception.code, 404)
+                body = json.dumps({"decision": "auto_close"}).encode()
+                request = urllib.request.Request(base + "/decision", data=body, method="POST", headers={"Authorization": "Bearer token", "Content-Type": "application/json"})
+                with self.assertRaises(urllib.error.HTTPError) as invalid: urllib.request.urlopen(request)
+                self.assertEqual(invalid.exception.code, 400)
+            finally:
+                server.shutdown(); server.server_close(); thread.join()
 
 
 if __name__ == "__main__":
