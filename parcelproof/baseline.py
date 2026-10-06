@@ -49,6 +49,23 @@ def write_review_page(output, result):
     (output/'review.html').write_text(html + '\n', encoding='utf-8')
 
 
+def item_signatures(frame):
+    """Return crude position-independent color/area signatures for visible objects."""
+    hsv=cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
+    mask=(hsv[:,:,1] > 60).astype(np.uint8)*255
+    mask[:20,:]=0; mask[-20:,:]=0; mask[:,:20]=0; mask[:,-20:]=0
+    contours,_=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    signatures=[]
+    for contour in contours:
+        area=cv2.contourArea(contour)
+        if area < 300: continue
+        component=np.zeros(mask.shape,dtype=np.uint8)
+        cv2.drawContours(component,[contour],-1,255,-1)
+        hue=float(np.median(hsv[:,:,0][component > 0]))
+        signatures.append([round(hue/10),round(area/100)])
+    return sorted(signatures)
+
+
 def analyze(packing, returned, output):
     if Path(packing).resolve() == Path(returned).resolve():
         raise ValueError('Two different recordings are required')
@@ -69,6 +86,7 @@ def analyze(packing, returned, output):
         if np.mean(gray < 55) > .30:
             reasons.append('Possible broad occlusion')
     boxes = []
+    signatures={'packing':item_signatures(a),'returned':item_signatures(b)}
     if not reasons:
         ga = cv2.cvtColor(a, cv2.COLOR_BGR2GRAY)
         gb = cv2.cvtColor(b, cv2.COLOR_BGR2GRAY)
@@ -83,7 +101,7 @@ def analyze(packing, returned, output):
             reasons.append('Possible localized obstruction or dark object; identity unresolved')
         if np.mean(border_delta > 20) > .002:
             reasons.append('Background changed; fixed-camera alignment unverified')
-        if not reasons:
+        if not reasons and signatures['packing'] != signatures['returned']:
             mask = (cv2.absdiff(a,b).max(axis=2) > 35).astype(np.uint8)*255
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3),np.uint8))
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -99,10 +117,12 @@ def analyze(packing, returned, output):
               'packing_seconds': ta, 'return_seconds': tb, 'changed_regions': boxes,
               'uncertainty_reasons': sorted(set(reasons)), 'opencv_version': cv2.__version__,
               'tail_motion_score': {'packing': stable_a, 'returned': stable_b},
+              'item_signatures': signatures,
               'evidence_frames': ['packing.png','returned.png'], 'review_page': 'review.html',
               'limitations': ['Calibrated fixed camera and stable final view only',
                               'Visible change only: no item identity, damage or fraud determination',
                               'Local occlusion and camera shifts may evade these conservative guards',
+                              'Color/area signatures are not product identity and fail on overlaps or similar items',
                               'Synthetic evaluation is not real-world validation']}
     (out/'review.json').write_text(json.dumps(result,indent=2)+'\n')
     write_review_page(out, result)
