@@ -34,7 +34,7 @@ Stable final views, visible border calibration marks, constant illumination and 
 
 ## Test report — 2026-10-06 UTC
 
-Executed locally after a clean dependency installation: `python -m unittest discover -s tests -v`. Fifteen tests passed. The separate nine-case synthetic evaluation produced 9/9 declared outcomes; position-independent color/area components corrected the earlier rearrangement false alarm while retaining the missing-item flag. This is not product identity: overlapping, low-saturation or visually similar items can merge or collide, and thresholds were exercised only on generated scenes. These checks demonstrate narrow synthetic behavior and an isolated fake-client AWS contract, not accuracy on real parcels or successful AWS deployment. No live AWS test was run.
+Executed locally after a clean dependency installation: `python -m unittest discover -s tests -v`. Sixteen tests passed, including tests that deliberately preserve and disclose known failure behavior. The expanded ten-case synthetic evaluation produced 9/10 expected outcomes. The system misses removal of a low-saturation gray item and reports `no_discrepancy_observed`, a false negative. Therefore a green unit-test run must not be described as detection accuracy. The baseline is not suitable for deployment or a strong primary submission without semantic recognition. No live AWS test was run.
 
 ## Next build tasks
 
