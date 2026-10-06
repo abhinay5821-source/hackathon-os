@@ -16,7 +16,7 @@ Completion: 5 of 8 explicitly defined milestones (62.5%). Equal-weight milestone
 | Held-out real-camera validation | Pending; consented footage absent |
 | Final demo video, eligibility confirmation and submission package | Pending |
 
-27 tests pass. Tests include synthetic vision, local authenticated HTTP review, fake AWS clients and infrastructure structure checks. No real-camera or live AWS claims.
+29 tests pass. Tests include synthetic vision, local authenticated HTTP review, fake AWS clients, infrastructure structure checks and evaluation-metric handling. No real-camera or live AWS claims.
 
 Planning target: October 9, 2026 for a candidate package, conditional on external blockers being resolved. This is not a submission commitment. No entry has been submitted.
-Next build: prepare a real-camera validation protocol and held-out scorecard. Next research: evaluate a second entry without duplicating ClearRoute.
+Next build: run the documented held-out scorecard after consented real footage is available. Next independent build: create PrivacyGate's fictional access-control fixtures while GitLab Duo remains unavailable.

@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 from clearroute.analyze import AnalysisConfig, analyze_frames, analyze_video
 from clearroute.aws_publish import publish_review_event
 from clearroute.decision import record_decision
+from clearroute.evaluate import evaluate_manifest
 from clearroute.fixtures import ROUTE, reference, scenario, write_fixture_set
 from clearroute.review import write_review
 from clearroute.server import make_handler
@@ -222,6 +223,30 @@ class ClearRouteTests(unittest.TestCase):
                 self.assertEqual(invalid.exception.code, 400)
             finally:
                 server.shutdown(); server.server_close(); thread.join()
+
+    def test_evaluation_reports_errors_and_uncertainty_separately(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            statuses = ["review_required", "clear", "review_required", "uncertain"]
+            expected = ["obstruction", "obstruction", "clear", "clear"]
+            cases = []
+            for index, (status, label) in enumerate(zip(statuses, expected)):
+                path = root / f"result-{index}.json"
+                path.write_text(json.dumps({"status": status}), encoding="utf-8")
+                cases.append({"case_id": str(index), "session_id": f"s-{index}", "expected": label, "result": path.name})
+            report = evaluate_manifest({"dataset_kind": "synthetic", "held_out": True, "cases": cases}, root)
+            self.assertEqual(report["counts"], {"true_positive": 1, "false_positive": 1, "true_negative": 0, "false_negative": 1, "uncertain": 1})
+            self.assertEqual((report["obstruction_recall"], report["false_alert_rate"], report["uncertain_rate"]), (0.5, 1.0, 0.25))
+            self.assertIn("not real-world validation", report["claim"])
+
+    def test_evaluation_requires_explicit_dataset_provenance(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = root / "result.json"
+            result.write_text('{"status":"clear"}', encoding="utf-8")
+            cases = [{"case_id": "1", "session_id": "s1", "expected": "clear", "result": result.name}]
+            with self.assertRaises(ValueError):
+                evaluate_manifest({"cases": cases}, root)
 
 
 if __name__ == "__main__":
