@@ -158,6 +158,26 @@ class ClearRouteTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     publish_review_event(result, evidence, event_id=f"{status}-1", bucket="b", table="t", s3=NoCalls(), dynamodb=NoCalls())
 
+    def test_cloudformation_storage_controls_are_declared(self):
+        template = json.loads(Path("infra/clearroute.json").read_text(encoding="utf-8"))
+        resources = template["Resources"]
+        bucket = resources["EvidenceBucket"]["Properties"]
+        self.assertTrue(all(bucket["PublicAccessBlockConfiguration"].values()))
+        encryption = bucket["BucketEncryption"]["ServerSideEncryptionConfiguration"][0]
+        self.assertEqual(encryption["ServerSideEncryptionByDefault"]["SSEAlgorithm"], "AES256")
+        self.assertEqual(bucket["LifecycleConfiguration"]["Rules"][0]["Status"], "Enabled")
+        table = resources["ReviewEvents"]["Properties"]
+        self.assertTrue(table["PointInTimeRecoverySpecification"]["PointInTimeRecoveryEnabled"])
+        self.assertTrue(table["SSESpecification"]["SSEEnabled"])
+        self.assertTrue(table["TimeToLiveSpecification"]["Enabled"])
+
+    def test_cloudformation_publisher_policy_is_write_only_and_scoped(self):
+        template = json.loads(Path("infra/clearroute.json").read_text(encoding="utf-8"))
+        statements = template["Resources"]["PublisherRole"]["Properties"]["Policies"][0]["PolicyDocument"]["Statement"]
+        actions = {action for statement in statements for action in statement["Action"]}
+        self.assertEqual(actions, {"s3:PutObject", "dynamodb:PutItem"})
+        self.assertEqual(statements[0]["Resource"]["Fn::Sub"], "${EvidenceBucket.Arn}/events/*")
+
 
 if __name__ == "__main__":
     unittest.main()

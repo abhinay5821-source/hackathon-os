@@ -14,3 +14,9 @@ Before live use:
 6. Add budget alarms before generating any charge.
 
 No credentials, account identifiers or infrastructure state belong in this public repository.
+
+## Infrastructure draft — not deployed
+
+`infra/clearroute.json` is a CloudFormation draft for the evidence bucket, review-events table and publisher role. It declares S3 Block Public Access, AES-256 server-side encryption, versioning and expiry; DynamoDB encryption, point-in-time recovery and TTL; and a publisher role limited to `s3:PutObject` under `events/*` plus `dynamodb:PutItem` on the single table.
+
+Repository tests parse the template and assert those controls and action scopes. They do not call CloudFormation, validate against AWS, prove the role usable, create a Lambda function, configure an authenticated endpoint or estimate charges. Deployment remains prohibited until an authorized account, region and spending boundary are supplied.
