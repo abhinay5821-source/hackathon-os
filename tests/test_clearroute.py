@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from clearroute.analyze import AnalysisConfig, analyze_frames, analyze_video
+from clearroute.decision import record_decision
 from clearroute.fixtures import ROUTE, reference, scenario, write_fixture_set
 from clearroute.review import write_review
 
@@ -56,9 +57,9 @@ class ClearRouteTests(unittest.TestCase):
     def test_camera_vibration_is_uncertain(self):
         self.assertEqual(self.result("camera_vibration")["status"], "uncertain")
 
-    def test_persistent_reflection_exposes_known_false_alert(self):
-        # Deliberately records a current limitation; this is not a success metric.
-        self.assertEqual(self.result("persistent_reflection")["status"], "review_required")
+    def test_persistent_reflection_is_conservatively_uncertain(self):
+        result = self.result("persistent_reflection")
+        self.assertEqual((result["status"], result["reason"]), ("uncertain", "possible_reflection"))
 
     def test_empty_stream_is_uncertain(self):
         self.assertEqual(analyze_frames(reference(), [], self.config)["status"], "uncertain")
@@ -86,6 +87,24 @@ class ClearRouteTests(unittest.TestCase):
             page = review_path.read_text(encoding="utf-8")
             self.assertIn("data:image/png;base64,", page)
             self.assertIn("human review", page.lower())
+
+    def test_reviewer_decision_record_has_no_identity_field(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            result_path = root / "result.json"
+            result_path.write_text('{"status":"review_required","reason":"persistent_route_obstruction"}', encoding="utf-8")
+            record_path = root / "decision.json"
+            record = record_decision(result_path, record_path, "dismissed", "Synthetic reflection")
+            self.assertEqual(record["review_decision"], "dismissed")
+            self.assertNotIn("reviewer", record)
+            self.assertTrue(record_path.exists())
+
+    def test_reviewer_decision_rejects_unknown_value(self):
+        with TemporaryDirectory() as directory:
+            result_path = Path(directory) / "result.json"
+            result_path.write_text('{"status":"clear"}', encoding="utf-8")
+            with self.assertRaises(ValueError):
+                record_decision(result_path, Path(directory) / "decision.json", "auto_close")
 
 
 if __name__ == "__main__":

@@ -25,6 +25,8 @@ class AnalysisConfig:
     minimum_brightness: float = 45.0
     maximum_global_change: float = 0.55
     maximum_registration_shift: float = 5.0
+    reflection_value_threshold: float = 245.0
+    reflection_saturation_threshold: float = 20.0
     fps: float = 10.0
 
 
@@ -54,7 +56,7 @@ def analyze_frames(
     reference_gray = cv2.cvtColor(reference, cv2.COLOR_BGR2GRAY)
     route_mask = _mask(reference.shape, config.route)
     kernel = np.ones((5, 5), np.uint8)
-    run = longest_run = 0
+    run = longest_run = reflection_run = 0
     evidence_index: int | None = None
     occupancies: list[float] = []
 
@@ -77,12 +79,24 @@ def analyze_frames(
         fraction = float(np.count_nonzero(route_pixels)) / float(np.count_nonzero(route_mask))
         occupancies.append(round(fraction, 5))
         if fraction >= config.occupied_fraction:
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            changed_inside = route_pixels > 0
+            mean_saturation = float(hsv[:, :, 1][changed_inside].mean())
+            mean_value = float(hsv[:, :, 2][changed_inside].mean())
+            reflection_like = (
+                mean_value >= config.reflection_value_threshold
+                and mean_saturation <= config.reflection_saturation_threshold
+            )
+            reflection_run = reflection_run + 1 if reflection_like else 0
+            if reflection_run >= config.persistence_frames:
+                return _result("uncertain", "possible_reflection", index + 1, None, occupancies, config)
             run += 1
             if run >= config.persistence_frames and evidence_index is None:
                 evidence_index = index
             longest_run = max(longest_run, run)
         else:
             run = 0
+            reflection_run = 0
 
     if not occupancies:
         return _result("uncertain", "no_frames", 0, None, occupancies, config)
