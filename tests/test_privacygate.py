@@ -1,6 +1,12 @@
 import unittest
+import json
+import threading
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 from privacygate.audit import audit
 from privacygate.core import AccessDenied, Actor, RecordService, fictional_records
+from privacygate.server import make_handler
 
 class PrivacyGateTests(unittest.TestCase):
     def test_secure_fixture_enforces_role_isolation(self):
@@ -35,6 +41,38 @@ class PrivacyGateTests(unittest.TestCase):
     def test_unknown_defect_is_rejected(self):
         with self.assertRaises(ValueError):
             RecordService(fictional_records(), "disable_all_auth")
+
+    def test_http_api_allows_own_record_and_denies_other_student(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(RecordService(fictional_records())))
+        thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+        base = f"http://127.0.0.1:{server.server_port}"
+        try:
+            own = urllib.request.Request(base + "/records/student-a", headers={"X-Actor-Id": "student-a", "X-Actor-Role": "student"})
+            with urllib.request.urlopen(own) as response:
+                payload = json.loads(response.read())
+                self.assertEqual(payload["record"]["student_id"], "student-a")
+                self.assertEqual(payload["fixture"], "fictional-only")
+            other = urllib.request.Request(base + "/records/student-b", headers={"X-Actor-Id": "student-a", "X-Actor-Role": "student"})
+            with self.assertRaises(urllib.error.HTTPError) as denied:
+                urllib.request.urlopen(other)
+            self.assertEqual(denied.exception.code, 403)
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
+
+    def test_http_api_rejects_missing_actor_and_unknown_record(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(RecordService(fictional_records())))
+        thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+        base = f"http://127.0.0.1:{server.server_port}"
+        try:
+            with self.assertRaises(urllib.error.HTTPError) as missing:
+                urllib.request.urlopen(base + "/records/student-a")
+            self.assertEqual(missing.exception.code, 401)
+            unknown = urllib.request.Request(base + "/records/student-x", headers={"X-Actor-Id": "principal-1", "X-Actor-Role": "principal"})
+            with self.assertRaises(urllib.error.HTTPError) as absent:
+                urllib.request.urlopen(unknown)
+            self.assertEqual(absent.exception.code, 404)
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
 
 if __name__ == "__main__":
     unittest.main()

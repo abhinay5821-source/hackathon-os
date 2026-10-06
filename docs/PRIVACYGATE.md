@@ -14,7 +14,16 @@ Demonstrate a caught regression:
 PYTHONPATH=. python -m privacygate.audit --seed-defect missing_guardian_scope
 ```
 
-All names, attendance figures and marks are invented. This baseline contains no real children, school records, credentials, server, database or deployment.
+Run the local fictional-record API:
+
+```bash
+PYTHONPATH=. python -m privacygate.server --port 8080
+curl -H "X-Actor-Id: student-a" -H "X-Actor-Role: student" http://127.0.0.1:8080/records/student-a
+```
+
+The API returns `401` without actor headers, `403` for a known but unauthorized record and `404` for an unknown record. Headers are deterministic test identities, not production authentication.
+
+All names, attendance figures and marks are invented. This baseline contains no real children, school records, credentials, database or deployment.
 
 ## Sponsor gap
 
