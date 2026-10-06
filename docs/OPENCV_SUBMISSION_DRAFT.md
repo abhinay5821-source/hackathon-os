@@ -25,7 +25,7 @@ flowchart TD
     F --> G["Local decision record"]
 ```
 
-Implemented locally: OpenCV 5.0.0.93, synthetic AVI generator, CLI analysis, evidence timestamp/PNG, offline HTML review and local decision JSON. No cloud component is represented as implemented.
+Implemented locally: OpenCV 5.0.0.93, synthetic AVI generator, CLI analysis, evidence timestamp/PNG, offline HTML review, local decision JSON, and a boto3-compatible AWS publishing contract tested only with fake clients. No live cloud component is represented as deployed or validated.
 
 ## Proposed AWS architecture — not implemented or validated
 
@@ -41,7 +41,7 @@ The minimum meaningful AWS target is private encrypted evidence storage, authent
 
 ## Current evaluation
 
-- 21 automated tests pass on generated fixtures using Python 3.12, NumPy 2.3.5 and OpenCV 5.0.0.93.
+- 23 automated tests pass on generated fixtures and fake AWS clients using Python 3.12, NumPy 2.3.5 and OpenCV 5.0.0.93.
 - Cases include persistent, transient, intermittent and outside-route changes; poor light; global occlusion; camera shift/drift/vibration; simple shadow; flickering reflection; stable white obstruction; and obstruction with glare.
 - Encoded AVI tests distinguish the current synthetic reflection from stable white/glare obstruction.
 - This is synthetic feasibility evidence only. It is not precision/recall measurement or real-camera validation.
@@ -84,6 +84,7 @@ The minimum meaningful AWS target is private encrypted evidence storage, authent
 - [x] Offline reviewer page and local decision record.
 - [x] Pinned local dependencies and 21 passing synthetic tests.
 - [x] Documented synthetic failures/limitations.
+- [x] Fake-client-tested S3/DynamoDB publishing contract.
 - [ ] Implement and exercise a meaningful AWS component.
 - [ ] Provide reproducible AWS deployment, IAM, retention, observability and teardown instructions.
 - [ ] Validate on consented real fixed-camera footage and report failures/metrics.

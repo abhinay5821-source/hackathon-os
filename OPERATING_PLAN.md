@@ -39,4 +39,4 @@ Record actual completed work, tests and blockers. Use feature branches for imple
 Background research is scheduled separately. Installing GitHub alone does not create continuous coding execution; repo access and execution capability must be independently verified.
 
 ## Current status
-ParcelProof is retained as a tested reference prototype after a low-saturation false negative. ClearRoute is the primary OpenCV feasibility candidate on draft PR #2. Its local OpenCV 5 workflow, synthetic fixtures, evidence export, offline review and local decision record are implemented; 21 synthetic tests pass. AWS and real-footage validation remain incomplete, so the project is not submission-ready.
+ParcelProof is retained as a tested reference prototype after a low-saturation false negative. ClearRoute is the primary OpenCV feasibility candidate on draft PR #2. Its local OpenCV 5 workflow, synthetic fixtures, evidence export, offline review, local decision record and fake-client-tested AWS publishing contract are implemented; 23 tests pass. Live AWS and real-footage validation remain incomplete, so the project is not submission-ready.

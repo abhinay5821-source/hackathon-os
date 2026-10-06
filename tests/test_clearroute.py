@@ -1,8 +1,10 @@
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from clearroute.analyze import AnalysisConfig, analyze_frames, analyze_video
+from clearroute.aws_publish import publish_review_event
 from clearroute.decision import record_decision
 from clearroute.fixtures import ROUTE, reference, scenario, write_fixture_set
 from clearroute.review import write_review
@@ -122,6 +124,39 @@ class ClearRouteTests(unittest.TestCase):
             result_path.write_text('{"status":"clear"}', encoding="utf-8")
             with self.assertRaises(ValueError):
                 record_decision(result_path, Path(directory) / "decision.json", "auto_close")
+
+    def test_aws_contract_encrypts_evidence_and_creates_pending_state(self):
+        class FakeS3:
+            def __init__(self): self.calls = []
+            def put_object(self, **kwargs): self.calls.append(kwargs)
+        class FakeDynamo:
+            def __init__(self): self.calls = []
+            def put_item(self, **kwargs): self.calls.append(kwargs)
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = root / "result.json"
+            result.write_text('{"status":"review_required","reason":"persistent_route_obstruction"}', encoding="utf-8")
+            evidence = root / "evidence.png"; evidence.write_bytes(b"synthetic-png-placeholder")
+            s3, dynamo = FakeS3(), FakeDynamo()
+            receipt = publish_review_event(result, evidence, event_id="synthetic-001", bucket="private-evidence", table="review-events", s3=s3, dynamodb=dynamo)
+            self.assertEqual(receipt["state"], "pending_review")
+            self.assertEqual(len(s3.calls), 2)
+            self.assertTrue(all(call["ServerSideEncryption"] == "AES256" for call in s3.calls))
+            self.assertTrue(all("ACL" not in call for call in s3.calls))
+            self.assertEqual(dynamo.calls[0]["ConditionExpression"], "attribute_not_exists(event_id)")
+
+    def test_aws_contract_rejects_non_review_events(self):
+        class NoCalls:
+            def put_object(self, **kwargs): raise AssertionError("must not upload")
+            def put_item(self, **kwargs): raise AssertionError("must not write")
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = root / "evidence.png"; evidence.write_bytes(b"x")
+            for status in ("clear", "uncertain"):
+                result = root / f"{status}.json"
+                result.write_text(json.dumps({"status": status}), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    publish_review_event(result, evidence, event_id=f"{status}-1", bucket="b", table="t", s3=NoCalls(), dynamodb=NoCalls())
 
 
 if __name__ == "__main__":

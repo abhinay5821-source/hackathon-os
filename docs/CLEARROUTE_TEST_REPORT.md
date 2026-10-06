@@ -2,7 +2,7 @@
 
 Environment: Python 3.12, NumPy 2.3.5, OpenCV headless 5.0.0.93. Command: `python -m unittest discover -s tests -v`.
 
-Result: **21 tests passed**. This is generated-fixture evaluation, not real-camera validation; test count is not detection accuracy.
+Result: **23 tests passed**. This is generated-fixture/fake-client evaluation, not real-camera or live-AWS validation; test count is not detection accuracy.
 
 | Synthetic condition | Expected behavior | Observed |
 |---|---|---|
@@ -26,5 +26,7 @@ Result: **21 tests passed**. This is generated-fixture evaluation, not real-came
 | Encoded AVI reflection/white-object distinction | reflection uncertain; white/glare boxes review | Pass |
 | Offline reviewer page | self-contained HTML with embedded evidence | Pass |
 | Reviewer decision record | bounded decision, no identity field | Pass |
+| AWS publishing contract | encrypted S3 request + conditional DynamoDB state using fakes | Pass |
+| AWS non-review guard | clear/uncertain events are not uploaded | Pass |
 
 These cases are deliberately simple. They do not measure precision, recall, false-alert rate or reviewer time on real footage. Varied reflections and white objects, crowds, weather, compression damage and changed furniture remain untested. The reflection rule combines brightness, low saturation and temporal fluctuation; it still needs real validation.
