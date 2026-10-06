@@ -8,6 +8,8 @@ Parcel reviewers often need to compare packing and return recordings manually. P
 
 Four explicitly synthetic scenes: unchanged parcel view, removed colored object, broad obstruction and poor light. Six automated checks pass. No real-world accuracy or time-saving claim has been measured. The implementation is a deterministic pixel baseline, not semantic item recognition.
 
+The expanded nine-case synthetic evaluation achieves 8/9 expected outcomes. It fails the harmless-rearrangement case: the same items in different positions trigger review. This is a disclosed false alarm, not evidence of item loss. The customer-unboxing workflow has been rejected; any continued entry should target an existing staff-operated packing station and must add item-level identity/counting before usefulness is claimed.
+
 ## AWS architecture — adapter implemented, deployment unvalidated
 
 Local OpenCV analysis → ZIP containing only the JSON, HTML and two evidence images → private S3 object using AES-256 server-side encryption → authorized reviewer retrieval. The uploader and its fake-client contract tests are implemented. No AWS resources were created, credentials supplied or live cloud tests run. IAM policy, bucket policy, retention and retrieval remain unvalidated, so this is not yet a demonstrated AWS deployment.
