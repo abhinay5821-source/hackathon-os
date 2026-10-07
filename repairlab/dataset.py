@@ -11,7 +11,8 @@ from pathlib import Path
 import numpy as np
 
 from repairlab.audio_align import load_audio, normalize_transcript
-from repairlab.corruptions import insert_pause, quiet_region, rush_region
+from repairlab.corruptions import (global_gain_control, insert_pause, quiet_region,
+                                   rush_region, smooth_quiet_region)
 from repairlab.provenance import validate_source
 
 
@@ -63,11 +64,21 @@ def _transform(samples, sample_rate, words, plan):
     if kind == "clean":
         if "severity" in plan:
             raise ValueError("Clean examples cannot have severity")
-        return samples.copy(), []
+        return samples.copy(), [], None
+    if kind == "control_global_gain":
+        output, control = global_gain_control(samples, sample_rate, plan.get("variant"))
+        return output, [], control
     severity = plan.get("severity")
     start, end = _word_region(words, plan)
     if kind == "quiet":
-        output, label = quiet_region(samples, sample_rate, start, end, severity)
+        method = plan.get("method", "hard_attenuation")
+        if method == "hard_attenuation":
+            output, label = quiet_region(samples, sample_rate, start, end, severity)
+            label["parameters"]["method"] = method
+        elif method == "cosine_envelope":
+            output, label = smooth_quiet_region(samples, sample_rate, start, end, severity)
+        else:
+            raise ValueError("Unknown quiet method")
     elif kind == "rushed":
         output, label = rush_region(samples, sample_rate, start, end, severity)
     elif kind == "inserted_pause":
@@ -76,7 +87,7 @@ def _transform(samples, sample_rate, words, plan):
         raise ValueError("Unknown corruption")
     label["word_region"] = {key: plan[key] for key in
                             ("start_word_index", "end_word_index", "at_word_index") if key in plan}
-    return output, [label]
+    return output, [label], None
 
 
 def _pcm_bytes(samples):
@@ -119,6 +130,23 @@ def build_dataset(output_dir, sources, plans):
         if existing != partition:
             raise ValueError("All derivatives of one recording must share a partition")
 
+    def method_signature(plan):
+        defaults = {"quiet": "hard_attenuation", "rushed": "linear_resampling_pitch_shifting_baseline",
+                    "inserted_pause": "silence_insertion"}
+        return plan.get("corruption"), plan.get("method", defaults.get(plan.get("corruption"), "default"))
+
+    held_out_methods = set()
+    for plan in plans:
+        if plan.get("holdout_method") is True:
+            if plan["partition"] != "held_out":
+                raise ValueError("A held-out corruption method may appear only in held_out")
+            held_out_methods.add(method_signature(plan))
+        elif plan.get("holdout_method") not in (None, False):
+            raise ValueError("holdout_method must be boolean")
+    for plan in plans:
+        if plan["partition"] != "held_out" and method_signature(plan) in held_out_methods:
+            raise ValueError("Held-out corruption method leaked into another partition")
+
     seen_by_partition = {}
     for recording_id, partition in partitions.items():
         metadata = validate_source(source_map[recording_id]["metadata"])
@@ -144,7 +172,7 @@ def build_dataset(output_dir, sources, plans):
         duration = len(samples) / 16000
         transcript = normalize_transcript(source["transcript"])
         words = _validate_words(source["words"], transcript, duration)
-        output, labels = _transform(samples, 16000, words, plan)
+        output, labels, control = _transform(samples, 16000, words, plan)
         pcm = _pcm_bytes(output)
         identity = {"format": FORMAT_VERSION, "source_sha256": hashlib.sha256(_pcm_bytes(samples)).hexdigest(),
                     "recording_id": metadata["recording_id"], "partition": plan["partition"],
@@ -164,6 +192,7 @@ def build_dataset(output_dir, sources, plans):
         truth_records.append({"derivative_id": derivative_id, "recording_id": metadata["recording_id"],
                               "speaker_id": metadata["speaker_id"], "text_id": metadata["text_id"],
                               "corruption": plan["corruption"], "labels": labels,
+                              "control": control, "expected_flaw": bool(labels),
                               "provenance": "evaluation_only_never_detector_input"})
 
     detector_records.sort(key=lambda item: item["derivative_id"])

@@ -11,6 +11,7 @@ import numpy as np
 QUIET_DB = {"mild": 6.0, "medium": 12.0, "severe": 20.0}
 PAUSE_SECONDS = {"mild": 0.20, "medium": 0.45, "severe": 0.80}
 RUSH_FACTOR = {"mild": 1.15, "medium": 1.35, "severe": 1.65}
+GLOBAL_GAIN_DB = {"lower": -3.0, "raise": 3.0}
 
 
 def _audio(samples, sample_rate):
@@ -56,6 +57,39 @@ def quiet_region(samples, sample_rate, start_seconds, end_seconds, severity):
     decibels = QUIET_DB[severity]
     values[start:end] *= 10 ** (-decibels / 20)
     return values, _label("quiet", severity, start, end, rate, {"attenuation_db": decibels})
+
+
+def smooth_quiet_region(samples, sample_rate, start_seconds, end_seconds, severity):
+    """Reduce amplitude with a cosine envelope as an alternate quiet method."""
+    values, rate = _audio(samples, sample_rate)
+    if severity not in QUIET_DB:
+        raise ValueError("Unknown quiet severity")
+    start, end = _region(start_seconds, end_seconds, rate, len(values))
+    decibels = QUIET_DB[severity]
+    minimum = 10 ** (-decibels / 20)
+    phase = np.linspace(0.0, 2.0 * np.pi, end - start, endpoint=False)
+    envelope = minimum + (1.0 - minimum) * (1.0 + np.cos(phase)) / 2.0
+    values[start:end] *= envelope.astype(np.float32)
+    return values, _label("quiet", severity, start, end, rate,
+                          {"attenuation_db": decibels, "method": "cosine_envelope"})
+
+
+def global_gain_control(samples, sample_rate, variant):
+    """Apply a modest whole-clip gain change intended as a negative control."""
+    values, rate = _audio(samples, sample_rate)
+    if variant not in GLOBAL_GAIN_DB:
+        raise ValueError("Unknown global-gain variant")
+    decibels = GLOBAL_GAIN_DB[variant]
+    output = values * (10 ** (decibels / 20))
+    if np.max(np.abs(output)) > 1.0:
+        raise ValueError("Global gain would clip; choose a lower-amplitude source")
+    return output.astype(np.float32), {
+        "control_type": "global_gain",
+        "variant": variant,
+        "parameters": {"gain_db": decibels},
+        "expected_flaw": False,
+        "provenance": "synthetic_negative_control_not_detector_input",
+    }
 
 
 def insert_pause(samples, sample_rate, at_seconds, severity):

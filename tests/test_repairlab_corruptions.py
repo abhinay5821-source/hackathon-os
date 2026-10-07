@@ -2,7 +2,8 @@ import unittest
 
 import numpy as np
 
-from repairlab.corruptions import insert_pause, quiet_region, rush_region
+from repairlab.corruptions import (global_gain_control, insert_pause, quiet_region,
+                                   rush_region, smooth_quiet_region)
 
 
 class CorruptionTests(unittest.TestCase):
@@ -66,3 +67,24 @@ class CorruptionTests(unittest.TestCase):
             rush_region(self.audio, 1000, 0.2, 0.5, "mild"),
         ):
             self.assertEqual(result[1]["provenance"], "synthetic_generator_truth_not_detector_input")
+
+    def test_smooth_quiet_is_distinct_duration_preserving_method(self):
+        hard, _ = quiet_region(self.audio, 1000, 0.2, 0.8, "medium")
+        smooth, label = smooth_quiet_region(self.audio, 1000, 0.2, 0.8, "medium")
+        self.assertEqual(len(smooth), len(self.audio))
+        np.testing.assert_array_equal(smooth[:200], self.audio[:200])
+        np.testing.assert_array_equal(smooth[800:], self.audio[800:])
+        self.assertFalse(np.array_equal(smooth[200:800], hard[200:800]))
+        self.assertEqual(label["parameters"]["method"], "cosine_envelope")
+
+    def test_global_gain_control_has_no_flaw_claim(self):
+        output, control = global_gain_control(self.audio * 0.5, 1000, "raise")
+        self.assertGreater(np.max(np.abs(output)), np.max(np.abs(self.audio * 0.5)))
+        self.assertFalse(control["expected_flaw"])
+        self.assertEqual(control["parameters"]["gain_db"], 3.0)
+
+    def test_global_gain_rejects_clipping_and_unknown_variant(self):
+        with self.assertRaisesRegex(ValueError, "clip"):
+            global_gain_control(self.audio, 1000, "raise")
+        with self.assertRaisesRegex(ValueError, "variant"):
+            global_gain_control(self.audio, 1000, "unknown")

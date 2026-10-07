@@ -46,7 +46,8 @@ class DatasetTests(unittest.TestCase):
         output = self.root / "dataset"
         plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "clean"},
                  {"recording_id": "rec-a", "partition": "train", "corruption": "quiet",
-                  "severity": "medium", "start_word_index": 1, "end_word_index": 3},
+                  "severity": "medium", "method": "cosine_envelope",
+                  "start_word_index": 1, "end_word_index": 3},
                  {"recording_id": "rec-b", "partition": "held_out", "corruption": "inserted_pause",
                   "severity": "mild", "at_word_index": 1}]
         build = build_dataset(output, self.sources, plans)
@@ -60,6 +61,7 @@ class DatasetTests(unittest.TestCase):
                          {"start_word_index": 1, "end_word_index": 3})
         self.assertEqual(quiet["labels"][0]["start_seconds"], 0.35)
         self.assertEqual(quiet["labels"][0]["end_seconds"], 0.8)
+        self.assertEqual(quiet["labels"][0]["parameters"]["method"], "cosine_envelope")
 
     def test_build_is_reproducible_with_immutable_ids(self):
         plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "rushed",
@@ -94,3 +96,27 @@ class DatasetTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "empty"):
             build_dataset(occupied, self.sources, [{"recording_id": "rec-a", "partition": "train",
                                                     "corruption": "clean"}])
+
+    def test_negative_control_is_hidden_from_detector_manifest(self):
+        output = self.root / "dataset"
+        plans = [{"recording_id": "rec-a", "partition": "train",
+                  "corruption": "control_global_gain", "variant": "lower"}]
+        build_dataset(output, self.sources, plans)
+        detector = json.loads((output / "detector_manifest.jsonl").read_text())
+        truth = json.loads((output / "evaluation_truth.jsonl").read_text())
+        self.assertNotIn("control", detector)
+        self.assertNotIn("expected_flaw", detector)
+        self.assertFalse(truth["expected_flaw"])
+        self.assertEqual(truth["control"]["control_type"], "global_gain")
+
+    def test_enforces_declared_held_out_corruption_method(self):
+        plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "quiet",
+                  "method": "hard_attenuation", "severity": "mild",
+                  "start_word_index": 0, "end_word_index": 1},
+                 {"recording_id": "rec-b", "partition": "held_out", "corruption": "quiet",
+                  "method": "cosine_envelope", "holdout_method": True, "severity": "mild",
+                  "start_word_index": 0, "end_word_index": 1}]
+        build_dataset(self.root / "valid", self.sources, plans)
+        plans[0]["method"] = "cosine_envelope"
+        with self.assertRaisesRegex(ValueError, "leaked"):
+            build_dataset(self.root / "invalid", self.sources, plans)
