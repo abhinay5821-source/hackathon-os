@@ -1,0 +1,177 @@
+"""Write reproducible clean/flawed datasets without leaking generator truth.
+
+Detector-facing records and evaluation truth are deliberately separate files.
+All derivatives from a recording must stay in one source-level partition.
+"""
+import hashlib
+import json
+import wave
+from pathlib import Path
+
+import numpy as np
+
+from repairlab.audio_align import load_audio, normalize_transcript
+from repairlab.corruptions import insert_pause, quiet_region, rush_region
+from repairlab.provenance import validate_source
+
+
+FORMAT_VERSION = "repairlab-contrastive-v1"
+ALLOWED_PARTITIONS = {"train", "development", "held_out"}
+
+
+def _canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _validate_words(words, transcript, duration):
+    if not isinstance(words, list) or not words:
+        raise ValueError("Require forced-alignment word spans")
+    previous = 0.0
+    normalized = normalize_transcript(transcript).split()
+    if len(words) != len(normalized):
+        raise ValueError("Word spans must match normalized transcript")
+    for expected, item in zip(normalized, words):
+        if item.get("word") != expected:
+            raise ValueError("Word span text must match normalized transcript")
+        start, end = item.get("start_seconds"), item.get("end_seconds")
+        if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
+            raise ValueError("Word boundaries must be numeric")
+        if not previous <= start < end <= duration:
+            raise ValueError("Word boundaries must be ordered and inside audio")
+        previous = end
+    return words
+
+
+def _word_region(words, plan):
+    kind = plan.get("corruption")
+    if kind == "inserted_pause":
+        index = plan.get("at_word_index")
+        if isinstance(index, bool) or not isinstance(index, int) or not 1 <= index < len(words):
+            raise ValueError("Pause must be placed at an internal word boundary")
+        return words[index]["start_seconds"], None
+    start = plan.get("start_word_index")
+    end = plan.get("end_word_index")
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in (start, end)):
+        raise ValueError("Corruption region needs integer word indexes")
+    if not 0 <= start < end <= len(words):
+        raise ValueError("Corruption region must cover complete words")
+    return words[start]["start_seconds"], words[end - 1]["end_seconds"]
+
+
+def _transform(samples, sample_rate, words, plan):
+    kind = plan.get("corruption")
+    if kind == "clean":
+        if "severity" in plan:
+            raise ValueError("Clean examples cannot have severity")
+        return samples.copy(), []
+    severity = plan.get("severity")
+    start, end = _word_region(words, plan)
+    if kind == "quiet":
+        output, label = quiet_region(samples, sample_rate, start, end, severity)
+    elif kind == "rushed":
+        output, label = rush_region(samples, sample_rate, start, end, severity)
+    elif kind == "inserted_pause":
+        output, label = insert_pause(samples, sample_rate, start, severity)
+    else:
+        raise ValueError("Unknown corruption")
+    label["word_region"] = {key: plan[key] for key in
+                            ("start_word_index", "end_word_index", "at_word_index") if key in plan}
+    return output, [label]
+
+
+def _pcm_bytes(samples):
+    clipped = np.clip(samples, -1.0, 1.0)
+    return np.round(clipped * 32767).astype("<i2").tobytes()
+
+
+def _write_wav(path, samples, sample_rate):
+    pcm = _pcm_bytes(samples)
+    with wave.open(str(path), "wb") as target:
+        target.setnchannels(1)
+        target.setsampwidth(2)
+        target.setframerate(sample_rate)
+        target.writeframes(pcm)
+    return pcm
+
+
+def build_dataset(output_dir, sources, plans):
+    """Build audio plus separate detector and evaluation JSONL manifests."""
+    root = Path(output_dir)
+    if root.exists() and any(root.iterdir()):
+        raise ValueError("Output directory must be absent or empty")
+    if not sources or not plans:
+        raise ValueError("Require sources and derivative plans")
+    source_map = {}
+    for source in sources:
+        metadata = validate_source(source.get("metadata", {}))
+        recording_id = metadata["recording_id"]
+        if recording_id in source_map:
+            raise ValueError("Duplicate recording_id")
+        source_map[recording_id] = source
+
+    partitions = {}
+    for plan in plans:
+        recording_id = plan.get("recording_id")
+        partition = plan.get("partition")
+        if recording_id not in source_map or partition not in ALLOWED_PARTITIONS:
+            raise ValueError("Plan has unknown source or partition")
+        existing = partitions.setdefault(recording_id, partition)
+        if existing != partition:
+            raise ValueError("All derivatives of one recording must share a partition")
+
+    seen_by_partition = {}
+    for recording_id, partition in partitions.items():
+        metadata = validate_source(source_map[recording_id]["metadata"])
+        bucket = seen_by_partition.setdefault(partition, {"speaker_id": set(), "text_id": set(),
+                                                           "recording_id": set()})
+        for field in bucket:
+            bucket[field].add(metadata[field])
+    partition_names = sorted(seen_by_partition)
+    for left_index, left in enumerate(partition_names):
+        for right in partition_names[left_index + 1:]:
+            for field in ("speaker_id", "text_id", "recording_id"):
+                if seen_by_partition[left][field] & seen_by_partition[right][field]:
+                    raise ValueError(f"Partition leakage: {field}")
+
+    audio_dir = root / "audio"
+    audio_dir.mkdir(parents=True)
+    detector_records, truth_records = [], []
+    used_ids = set()
+    for plan in plans:
+        source = source_map[plan["recording_id"]]
+        metadata = validate_source(source["metadata"])
+        samples = load_audio(source["audio_path"])
+        duration = len(samples) / 16000
+        transcript = normalize_transcript(source["transcript"])
+        words = _validate_words(source["words"], transcript, duration)
+        output, labels = _transform(samples, 16000, words, plan)
+        pcm = _pcm_bytes(output)
+        identity = {"format": FORMAT_VERSION, "source_sha256": hashlib.sha256(_pcm_bytes(samples)).hexdigest(),
+                    "recording_id": metadata["recording_id"], "partition": plan["partition"],
+                    "plan": {key: plan[key] for key in sorted(plan) if key != "recording_id"},
+                    "output_pcm_sha256": hashlib.sha256(pcm).hexdigest()}
+        derivative_id = hashlib.sha256(_canonical(identity).encode()).hexdigest()
+        if derivative_id in used_ids:
+            raise ValueError("Duplicate derivative plan")
+        used_ids.add(derivative_id)
+        relative_audio = f"audio/{derivative_id}.wav"
+        written_pcm = _write_wav(root / relative_audio, output, 16000)
+        if written_pcm != pcm:
+            raise AssertionError("WAV serialization mismatch")
+        detector_records.append({"derivative_id": derivative_id, "audio_path": relative_audio,
+                                 "partition": plan["partition"], "transcript": transcript,
+                                 "duration_seconds": len(output) / 16000})
+        truth_records.append({"derivative_id": derivative_id, "recording_id": metadata["recording_id"],
+                              "speaker_id": metadata["speaker_id"], "text_id": metadata["text_id"],
+                              "corruption": plan["corruption"], "labels": labels,
+                              "provenance": "evaluation_only_never_detector_input"})
+
+    detector_records.sort(key=lambda item: item["derivative_id"])
+    truth_records.sort(key=lambda item: item["derivative_id"])
+    (root / "detector_manifest.jsonl").write_text("".join(_canonical(item) + "\n" for item in detector_records))
+    (root / "evaluation_truth.jsonl").write_text("".join(_canonical(item) + "\n" for item in truth_records))
+    build = {"format": FORMAT_VERSION, "entries": len(detector_records),
+             "detector_manifest_sha256": hashlib.sha256((root / "detector_manifest.jsonl").read_bytes()).hexdigest(),
+             "evaluation_truth_sha256": hashlib.sha256((root / "evaluation_truth.jsonl").read_bytes()).hexdigest()}
+    (root / "build.json").write_text(json.dumps(build, indent=2, sort_keys=True) + "\n")
+    return build
