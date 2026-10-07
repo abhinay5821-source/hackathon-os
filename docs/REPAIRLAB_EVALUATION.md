@@ -23,3 +23,5 @@ The report includes region precision, recall and F1 at a declared temporal-IoU t
 Matching greedily selects the highest remaining IoU and is deterministic. It is not a globally optimal assignment. Metrics against synthetic labels measure recovery of injected regions, not perceived speech quality, listener outcomes or therapeutic benefit. Final reporting must keep synthetic, self-recorded and real-user evidence separate.
 
 Feature-group ablations use `python -m repairlab.ablate_detector`; see `docs/REPAIRLAB_ABLATIONS.md`.
+
+Development-only threshold selection and locked held-out scoring use `python -m repairlab.calibrate_threshold`; see `docs/REPAIRLAB_CALIBRATION.md`.
