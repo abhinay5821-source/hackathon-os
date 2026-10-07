@@ -16,7 +16,7 @@ from repairlab.corruptions import (global_gain_control, insert_pause, quiet_regi
 from repairlab.provenance import validate_source
 
 
-FORMAT_VERSION = "repairlab-contrastive-v1"
+FORMAT_VERSION = "repairlab-contrastive-v2"
 ALLOWED_PARTITIONS = {"train", "development", "held_out"}
 
 
@@ -161,8 +161,9 @@ def build_dataset(output_dir, sources, plans):
                 if seen_by_partition[left][field] & seen_by_partition[right][field]:
                     raise ValueError(f"Partition leakage: {field}")
 
-    audio_dir = root / "audio"
-    audio_dir.mkdir(parents=True)
+    # Validate and render every derivative before creating any output files.
+    prepared = []
+    provenance_records = {}
     detector_records, truth_records = [], []
     used_ids = set()
     for plan in plans:
@@ -174,7 +175,13 @@ def build_dataset(output_dir, sources, plans):
         words = _validate_words(source["words"], transcript, duration)
         output, labels, control = _transform(samples, 16000, words, plan)
         pcm = _pcm_bytes(output)
-        identity = {"format": FORMAT_VERSION, "source_sha256": hashlib.sha256(_pcm_bytes(samples)).hexdigest(),
+        source_hash = hashlib.sha256(Path(source["audio_path"]).read_bytes()).hexdigest()
+        provenance_records[metadata["recording_id"]] = {
+            "metadata": metadata, "source_file_sha256": source_hash,
+            "transcript": transcript, "alignment_words": words,
+            "alignment_claim": "supplied_word_spans_not_independently_validated_by_builder"}
+        identity = {"format": FORMAT_VERSION, "source_sha256": source_hash,
+                    "transcript": transcript, "alignment_words": words,
                     "recording_id": metadata["recording_id"], "partition": plan["partition"],
                     "plan": {key: plan[key] for key in sorted(plan) if key != "recording_id"},
                     "output_pcm_sha256": hashlib.sha256(pcm).hexdigest()}
@@ -183,9 +190,7 @@ def build_dataset(output_dir, sources, plans):
             raise ValueError("Duplicate derivative plan")
         used_ids.add(derivative_id)
         relative_audio = f"audio/{derivative_id}.wav"
-        written_pcm = _write_wav(root / relative_audio, output, 16000)
-        if written_pcm != pcm:
-            raise AssertionError("WAV serialization mismatch")
+        prepared.append((relative_audio, output, pcm))
         detector_records.append({"derivative_id": derivative_id, "audio_path": relative_audio,
                                  "partition": plan["partition"], "transcript": transcript,
                                  "duration_seconds": len(output) / 16000})
@@ -195,11 +200,18 @@ def build_dataset(output_dir, sources, plans):
                               "control": control, "expected_flaw": bool(labels),
                               "provenance": "evaluation_only_never_detector_input"})
 
+    audio_dir = root / "audio"
+    audio_dir.mkdir(parents=True)
+    for relative_audio, output, pcm in prepared:
+        if _write_wav(root / relative_audio, output, 16000) != pcm:
+            raise AssertionError("WAV serialization mismatch")
+    (root / "source_provenance.json").write_text(_canonical(provenance_records) + "\n")
     detector_records.sort(key=lambda item: item["derivative_id"])
     truth_records.sort(key=lambda item: item["derivative_id"])
     (root / "detector_manifest.jsonl").write_text("".join(_canonical(item) + "\n" for item in detector_records))
     (root / "evaluation_truth.jsonl").write_text("".join(_canonical(item) + "\n" for item in truth_records))
     build = {"format": FORMAT_VERSION, "entries": len(detector_records),
+             "source_provenance_sha256": hashlib.sha256((root / "source_provenance.json").read_bytes()).hexdigest(),
              "detector_manifest_sha256": hashlib.sha256((root / "detector_manifest.jsonl").read_bytes()).hexdigest(),
              "evaluation_truth_sha256": hashlib.sha256((root / "evaluation_truth.jsonl").read_bytes()).hexdigest()}
     (root / "build.json").write_text(json.dumps(build, indent=2, sort_keys=True) + "\n")

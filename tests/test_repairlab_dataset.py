@@ -120,3 +120,36 @@ class DatasetTests(unittest.TestCase):
         plans[0]["method"] = "cosine_envelope"
         with self.assertRaisesRegex(ValueError, "leaked"):
             build_dataset(self.root / "invalid", self.sources, plans)
+
+    def test_late_invalid_plan_creates_no_partial_dataset(self):
+        output = self.root / "invalid"
+        plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "clean"},
+                 {"recording_id": "rec-a", "partition": "train", "corruption": "quiet",
+                  "severity": "unknown", "start_word_index": 0, "end_word_index": 1}]
+        with self.assertRaises(ValueError):
+            build_dataset(output, self.sources, plans)
+        self.assertFalse(output.exists())
+
+    def test_clean_identity_changes_when_transcript_or_alignment_changes(self):
+        plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "clean"}]
+        ids = []
+        for index in range(3):
+            output = self.root / f"build-{index}"
+            build_dataset(output, self.sources, plans)
+            ids.append(json.loads((output / "detector_manifest.jsonl").read_text())["derivative_id"])
+            if index == 0:
+                self.sources[0]["words"][0]["end_seconds"] = 0.26
+            elif index == 1:
+                self.sources[0]["transcript"] = "FOUR TWO THREE"
+                self.sources[0]["words"][0]["word"] = "FOUR"
+        self.assertEqual(len(set(ids)), 3)
+
+    def test_provenance_is_exported_with_original_file_hash(self):
+        import hashlib
+        output = self.root / "dataset"
+        build_dataset(output, self.sources,
+                      [{"recording_id": "rec-a", "partition": "train", "corruption": "clean"}])
+        provenance = json.loads((output / "source_provenance.json").read_text())["rec-a"]
+        self.assertEqual(provenance["source_file_sha256"], hashlib.sha256(self.a.read_bytes()).hexdigest())
+        self.assertEqual(provenance["metadata"]["rights_basis"], "test fixture")
+        self.assertNotIn(str(self.root), json.dumps(provenance))
