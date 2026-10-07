@@ -69,6 +69,15 @@ class FeatureTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             extract_frame_features(np.array([1, 2], dtype=np.int16))
 
+    def test_feature_subset_is_declared_and_validated(self):
+        baseline = rows([-20, -20, -20, -20, -20])
+        participant = rows([-20, -20, -32, -20, -20])
+        result = compare_word_features(baseline, participant, active_features=["f0_hz"])
+        self.assertEqual(result["active_features"], ["f0_hz"])
+        self.assertEqual(result["regions"], [])
+        with self.assertRaisesRegex(ValueError, "active_features"):
+            compare_word_features(baseline, participant, active_features=[])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -29,7 +29,7 @@ def _serializable_frames(features):
 
 
 def analyze_pair(baseline_audio, participant_audio, baseline_alignment, participant_alignment,
-                 threshold=2.5):
+                 threshold=2.5, active_features=None):
     """Return feature overlays, aligned-word summaries and grounded regions."""
     baseline_samples = load_audio(baseline_audio)
     participant_samples = load_audio(participant_audio)
@@ -37,7 +37,8 @@ def analyze_pair(baseline_audio, participant_audio, baseline_alignment, particip
     participant_frames = extract_frame_features(participant_samples)
     baseline_words = summarize_words(baseline_frames, _alignment_words(baseline_alignment))
     participant_words = summarize_words(participant_frames, _alignment_words(participant_alignment))
-    comparison = compare_word_features(baseline_words, participant_words, threshold=threshold)
+    comparison = compare_word_features(baseline_words, participant_words, threshold=threshold,
+                                       active_features=active_features)
     return {
         "schema": "repairlab-pair-analysis-v1",
         "baseline": {"duration_seconds": len(baseline_samples) / 16000,

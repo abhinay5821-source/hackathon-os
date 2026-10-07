@@ -115,25 +115,28 @@ def _normalization(rows, feature):
     return (values - center) / scale, {"center": center, "scale": scale, "method": "median/MAD_floor"}
 
 
-def compare_word_features(baseline, participant, threshold=2.5):
+def compare_word_features(baseline, participant, threshold=2.5, active_features=None):
     """Return timestamped regions whose within-speaker feature deltas exceed a threshold."""
     if len(baseline) != len(participant) or len(baseline) < 3:
         raise ValueError("Require at least three transcript-matched words")
     if not isinstance(threshold, (int, float)) or not math.isfinite(threshold) or threshold <= 0:
         raise ValueError("threshold must be positive and finite")
+    active = tuple(FEATURES if active_features is None else active_features)
+    if not active or len(set(active)) != len(active) or any(item not in FEATURES for item in active):
+        raise ValueError("active_features must be unique supported feature names")
     for expected, observed in zip(baseline, participant):
         if expected.get("word") != observed.get("word"):
             raise ValueError("Baseline and participant words must match")
     normalized = {}
     parameters = {}
-    for feature in FEATURES:
+    for feature in active:
         base_z, base_parameters = _normalization(baseline, feature)
         participant_z, participant_parameters = _normalization(participant, feature)
         normalized[feature] = participant_z - base_z
         parameters[feature] = {"baseline": base_parameters, "participant": participant_parameters}
     regions = []
     for index, row in enumerate(participant):
-        deltas = {feature: float(normalized[feature][index]) for feature in FEATURES
+        deltas = {feature: float(normalized[feature][index]) for feature in active
                   if np.isfinite(normalized[feature][index])}
         flagged = {feature: delta for feature, delta in deltas.items() if abs(delta) >= threshold}
         if not flagged:
@@ -156,5 +159,6 @@ def compare_word_features(baseline, participant, threshold=2.5):
                         "max_absolute_delta": max(abs(value) for value in flagged.values()),
                         "feature_deltas": flagged, "candidate_flaw_type": candidate_type,
                         "explanations": explanations})
-    return {"threshold": float(threshold), "normalization": parameters, "regions": regions,
+    return {"threshold": float(threshold), "active_features": list(active),
+            "normalization": parameters, "regions": regions,
             "claim": "Transparent baseline; thresholds and delivery meaning require held-out calibration."}

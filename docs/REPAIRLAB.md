@@ -1,5 +1,7 @@
 # RepairLab: Track C foundation
 
+Latest addition: leave-one-feature-group-out evaluation for energy, pitch, spectral and timing evidence. See docs/REPAIRLAB_ABLATIONS.md.
+
 Current scope: deterministic CPU CTC alignment, a local Wav2Vec2 real-audio adapter, independent manual-boundary scoring, source gates, reproducible VCTK fetching, strict holdouts, deterministic corruptions and controls, a dataset writer that separates detector inputs from evaluation truth, a transparent word-level acoustic comparison baseline, a CLI that exports pair analysis, a local upload/review dashboard with evidence playback and selectable overlays, a truth-isolated batch detector, and a detector evaluator with uninformed baselines. The pinned model has run on one NASA archive clip and three licensed VCTK calibration clips, but word timing accuracy, feature thresholds, browser interaction quality, dashboard usability and delivery scores remain unvalidated. See docs/REPAIRLAB_AUDIO_SMOKE.md, docs/REPAIRLAB_VCTK_ALIGNMENT.md, docs/ALIGNMENT_ANNOTATION.md, docs/REPAIRLAB_SOURCES.md, docs/REPAIRLAB_CORRUPTIONS.md, docs/REPAIRLAB_FEATURES.md, docs/REPAIRLAB_PIPELINE.md, docs/REPAIRLAB_DASHBOARD.md, docs/REPAIRLAB_BATCH.md and docs/REPAIRLAB_EVALUATION.md. This is not a submission-ready build.
 
 ## Setup and checks
@@ -43,6 +45,8 @@ Internal package target: 2026-10-13, conditional on source and alignment gates. 
 Repair previews are optional sanity checks after the required pipeline. Never claim injected-flaw localization establishes listener comprehension or clinical benefit. Maintain a separate unseen-corruption test; the detector must not read injection labels or parameters. All derivatives of a source recording remain in its partition.
 
 ## Test report: 2026-10-07
+
+Ablation increment: 58/58 tests passed. Three new tests cover explicit feature subsets, invalid subset rejection, all four leave-one-group-out variants, expected loss of a synthetic energy-only signal, strict JSON and the actual CLI. This is synthetic implementation evidence; no real-speech feature-importance claim is made. See docs/REPAIRLAB_ABLATIONS.md.
 
 Batch-detection increment: 55/55 tests passed. Three new tests exercise the Python API and actual batch CLI, deterministic record order, strict JSONL, evaluator-compatible regions, duplicate-ID rejection and containment of relative input paths. The detector manifest contains no generator truth. The audio fixtures are generated tones, not real delivery-quality evidence.
 

@@ -38,7 +38,7 @@ def _safe_path(root, value, field):
     return resolved
 
 
-def detect_manifest(rows, root, threshold=2.5):
+def detect_manifest(rows, root, threshold=2.5, active_features=None):
     """Create prediction records without loading labels or injection parameters."""
     if (isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or
             not math.isfinite(threshold) or threshold <= 0):
@@ -54,10 +54,12 @@ def detect_manifest(rows, root, threshold=2.5):
         baseline_alignment = json.loads(paths["baseline_alignment"].read_text())
         participant_alignment = json.loads(paths["participant_alignment"].read_text())
         result = analyze_pair(paths["baseline_audio"], paths["participant_audio"],
-                              baseline_alignment, participant_alignment, threshold)
+                              baseline_alignment, participant_alignment, threshold,
+                              active_features=active_features)
         output.append({"schema": "repairlab-detector-prediction-v1",
                        "derivative_id": identifier,
                        "threshold": float(result["comparison"]["threshold"]),
+                       "active_features": result["comparison"]["active_features"],
                        "regions": result["comparison"]["regions"]})
     return sorted(output, key=lambda item: item["derivative_id"])
 
