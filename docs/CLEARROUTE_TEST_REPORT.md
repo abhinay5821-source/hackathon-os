@@ -2,7 +2,9 @@
 
 Environment: Python 3.12, NumPy 2.3.5, OpenCV headless 5.0.0.93. Command: `python -m unittest discover -s tests -v`.
 
-Result: **30 tests passed** from the exact remote branch head `8cda73a`. The one-command demo also completed and produced a JSON result, marked evidence PNG and self-contained review page. This is generated-fixture/fake-client evaluation, not real-camera or live-AWS validation; test count is not detection accuracy.
+Result: **33 tests passed** on the evidence-export increment based on remote branch head `bc4a0ecf88614a26787572135490f49af2284655`. Command used an isolated Python venv with the pinned dependencies. The one-command demo also completed and produced a JSON result, marked evidence PNG and self-contained review page. This is generated-fixture/fake-client evaluation, not real-camera or live-AWS validation; test count is not detection accuracy.
+
+New regression checks: a synthetic 20-FPS AVI produces frame-index/20 timestamps and writes evidence into a previously absent nested directory; an image-write failure raises instead of publishing a fresh result JSON; zero, negative and non-finite frame rates are rejected. Video timing assumes constant frame rate, and persistence remains frame-count based. These checks do not validate variable-frame-rate footage.
 
 | Synthetic condition | Expected behavior | Observed |
 |---|---|---|

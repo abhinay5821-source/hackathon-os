@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass
+import math
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Iterable
 
@@ -54,6 +55,8 @@ def analyze_frames(
     config: AnalysisConfig = AnalysisConfig(),
 ) -> dict:
     """Classify a stream and return JSON-safe evidence metadata."""
+    if not math.isfinite(config.fps) or config.fps <= 0:
+        raise ValueError("Frame rate must be finite and positive")
     reference_gray = cv2.cvtColor(reference, cv2.COLOR_BGR2GRAY)
     route_mask = _mask(reference.shape, config.route)
     kernel = np.ones((5, 5), np.uint8)
@@ -153,10 +156,16 @@ def analyze_video(reference_path: Path, video_path: Path, output_path: Path, con
             yield frame
 
     try:
+        fps = float(capture.get(cv2.CAP_PROP_FPS))
+        if not math.isfinite(fps) or fps <= 0:
+            raise ValueError("Video has no usable frame rate; timestamps cannot be calculated")
+        config = replace(config, fps=fps)
         result = analyze_frames(reference, stream(), config)
+        result["timestamp_basis"] = "frame_index / reported_video_fps; constant-frame-rate assumption"
     finally:
         capture.release()
     evidence_index = result["evidence_frame"]
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     if evidence_index is not None:
         capture = cv2.VideoCapture(str(video_path))
         capture.set(cv2.CAP_PROP_POS_FRAMES, evidence_index)
@@ -166,9 +175,11 @@ def analyze_video(reference_path: Path, video_path: Path, output_path: Path, con
             x1, y1, x2, y2 = config.route
             cv2.rectangle(evidence, (x1, y1), (x2, y2), (0, 0, 255), 2)
             evidence_path = output_path.with_suffix(".evidence.png")
-            cv2.imwrite(str(evidence_path), evidence)
+            if not cv2.imwrite(str(evidence_path), evidence):
+                raise OSError(f"Cannot write evidence image: {evidence_path}")
             result["evidence_image"] = str(evidence_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            raise OSError(f"Cannot decode evidence frame {evidence_index}")
     output_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result
 

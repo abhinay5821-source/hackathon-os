@@ -6,6 +6,7 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from clearroute.analyze import AnalysisConfig, analyze_frames, analyze_video
 from clearroute.aws_publish import publish_review_event
@@ -17,6 +18,32 @@ from clearroute.server import make_handler
 
 
 class ClearRouteTests(unittest.TestCase):
+    def test_video_timestamp_uses_encoded_fps_and_creates_output_directory(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture_set(root, fps=20.0)
+            output = root / "new" / "nested" / "result.json"
+            result = analyze_video(root / "reference.png", root / "persistent_box.avi", output)
+            self.assertEqual(result["config"]["fps"], 20.0)
+            self.assertEqual(result["evidence_timestamp_seconds"], result["evidence_frame"] / 20.0)
+            self.assertTrue(Path(result["evidence_image"]).is_file())
+            self.assertTrue(output.is_file())
+
+    def test_failed_evidence_write_does_not_publish_result(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture_set(root)
+            output = root / "result.json"
+            with patch("clearroute.analyze.cv2.imwrite", return_value=False):
+                with self.assertRaises(OSError):
+                    analyze_video(root / "reference.png", root / "persistent_box.avi", output)
+            self.assertFalse(output.exists())
+
+    def test_invalid_frame_rate_is_rejected(self):
+        for fps in (0, -1, float("nan"), float("inf")):
+            with self.subTest(fps=fps), self.assertRaises(ValueError):
+                analyze_frames(reference(), scenario("persistent_box"), AnalysisConfig(fps=fps))
+
     def setUp(self):
         self.config = AnalysisConfig(route=ROUTE)
 
