@@ -2,6 +2,8 @@
 
 Latest calibration addition: development-only threshold selection with locked held-out scoring. See docs/REPAIRLAB_CALIBRATION.md.
 
+Submission drafts: docs/REPAIRLAB_SUBMISSION_DRAFT.md, docs/REPAIRLAB_DEMO_SCRIPT.md and docs/REPAIRLAB_FINAL_CHECKLIST.md. These are scaffolds with explicit blockers, not completed deliverables.
+
 Latest addition: leave-one-feature-group-out evaluation for energy, pitch, spectral and timing evidence. See docs/REPAIRLAB_ABLATIONS.md.
 
 Current scope: deterministic CPU CTC alignment, a local Wav2Vec2 real-audio adapter, independent manual-boundary scoring, source gates, reproducible VCTK fetching, strict holdouts, deterministic corruptions and controls, a dataset writer that separates detector inputs from evaluation truth, a transparent word-level acoustic comparison baseline, a CLI that exports pair analysis, a local upload/review dashboard with evidence playback and selectable overlays, a truth-isolated batch detector, and a detector evaluator with uninformed baselines. The pinned model has run on one NASA archive clip and three licensed VCTK calibration clips, but word timing accuracy, feature thresholds, browser interaction quality, dashboard usability and delivery scores remain unvalidated. See docs/REPAIRLAB_AUDIO_SMOKE.md, docs/REPAIRLAB_VCTK_ALIGNMENT.md, docs/ALIGNMENT_ANNOTATION.md, docs/REPAIRLAB_SOURCES.md, docs/REPAIRLAB_CORRUPTIONS.md, docs/REPAIRLAB_FEATURES.md, docs/REPAIRLAB_PIPELINE.md, docs/REPAIRLAB_DASHBOARD.md, docs/REPAIRLAB_BATCH.md and docs/REPAIRLAB_EVALUATION.md. This is not a submission-ready build.
