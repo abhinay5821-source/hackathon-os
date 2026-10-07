@@ -63,4 +63,4 @@ Forced alignment can produce plausible timestamps for an incorrect transcript. P
 
 RepairLab must not penalize accent, neurodivergence or disability, and must not make medical or therapeutic claims. Users should control their recordings and understand the uncertainty of every flag.
 
-Reproduction requires Python 3.12, pinned dependencies, public source/dataset links, exact manifests and seeds. `PENDING: FRESH-CLONE RESULT, PUBLIC DATASET URL, COMMIT SHA, HARDWARE AND RUNTIME TABLE.`
+Reproduction requires Python 3.12, pinned dependencies, public source/dataset links, exact manifests and seeds. A clean Linux/Python 3.12.14 clone of commit `b2e0afb` installed `numpy==2.3.5` and passed 60/60 core tests in 2.856 seconds. This does not cover optional model/data downloads. `PENDING: PUBLIC DATASET URL, FINAL COMMIT SHA AND FULL MODEL/DATA RUNTIME TABLE.`
