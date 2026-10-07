@@ -58,6 +58,7 @@ class FeatureTests(unittest.TestCase):
                          (participant[2]["start_seconds"], participant[2]["end_seconds"]))
         self.assertIn("energy_db", region["feature_deltas"])
         self.assertIn("preceding_pause_seconds", region["feature_deltas"])
+        self.assertEqual(region["candidate_flaw_type"], "inserted_pause")
         self.assertTrue(all("normalized value minus baseline" in text for text in region["explanations"]))
 
     def test_rejects_mismatched_transcript_and_bad_audio(self):

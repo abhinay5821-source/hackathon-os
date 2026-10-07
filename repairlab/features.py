@@ -143,9 +143,18 @@ def compare_word_features(baseline, participant, threshold=2.5):
             f"absolute delta >= {threshold:.2f}."
             for feature, delta in sorted(flagged.items())
         ]
+        candidates = []
+        if flagged.get("preceding_pause_seconds", 0.0) > 0:
+            candidates.append((abs(flagged["preceding_pause_seconds"]), "inserted_pause"))
+        if flagged.get("duration_seconds", 0.0) < 0:
+            candidates.append((abs(flagged["duration_seconds"]), "rushed"))
+        if flagged.get("energy_db", 0.0) < 0:
+            candidates.append((abs(flagged["energy_db"]), "quiet"))
+        candidate_type = max(candidates)[1] if candidates else "unclassified_acoustic_deviation"
         regions.append({"word_index": index, "word": row["word"],
                         "start_seconds": row["start_seconds"], "end_seconds": row["end_seconds"],
                         "max_absolute_delta": max(abs(value) for value in flagged.values()),
-                        "feature_deltas": flagged, "explanations": explanations})
+                        "feature_deltas": flagged, "candidate_flaw_type": candidate_type,
+                        "explanations": explanations})
     return {"threshold": float(threshold), "normalization": parameters, "regions": regions,
             "claim": "Transparent baseline; thresholds and delivery meaning require held-out calibration."}
