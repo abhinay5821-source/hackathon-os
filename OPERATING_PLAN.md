@@ -17,7 +17,7 @@ Official rules reviewed on 2026-10-05. Recheck before registration or submission
 | AWS CDS | https://aws-cds-partner.devpost.com/rules | Hold: AWS Partner affiliation required |
 | Monad Metropolis | https://www.risein.com/monad/monad-metropolis-hackathon | Watch: conflicting deadline fields; binding rules and prize composition unresolved |
 
-## First proposed build: ParcelProof
+## Reference build: ParcelProof
 Compare packing and return footage to highlight visible missing items or damage, with timestamps and evidence frames for a human reviewer. Do not infer fraud or automate accusations.
 
 ### Initial scope
@@ -39,4 +39,4 @@ Record actual completed work, tests and blockers. Use feature branches for imple
 Background research is scheduled separately. Installing GitHub alone does not create continuous coding execution; repo access and execution capability must be independently verified.
 
 ## Current status
-Planning initialized. No application code or benchmark exists yet.
+ParcelProof is retained as a tested reference prototype after a low-saturation false negative. ClearRoute is the primary OpenCV feasibility candidate on draft PR #2. Its local OpenCV 5 workflow, synthetic fixtures, evidence export, offline review, local decision record, fake-client-tested AWS publishing contract and structurally tested CloudFormation draft are implemented; 25 tests pass. Live AWS and real-footage validation remain incomplete, so the project is not submission-ready.
