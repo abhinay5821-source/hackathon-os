@@ -1,11 +1,11 @@
-# Status — 2026-10-06
+# Status — 2026-10-07
 
 ## ClearRoute
 
 - Draft PR: https://github.com/abhinay5821-source/hackathon-os/pull/2
 - Local prototype: implemented on `strategy/opencv-clearroute`.
 - Scope: fixed reference, configured rectangular route, persistent change, uncertainty for poor light/global occlusion/camera shift, JSON evidence metadata.
-- Evaluation: synthetic only; 29 automated tests pass with OpenCV 5.0.0.93 on Python 3.12, including encoded-AVI reflection/white-object checks, authenticated local HTTP review, fake-client AWS contract tests, infrastructure-structure tests and evaluation-metric tests; test count is not accuracy.
+- Evaluation: synthetic only; 30 automated tests pass from exact remote head `8cda73a` with OpenCV 5.0.0.93 on Python 3.12, including encoded-AVI reflection/white-object checks, authenticated local HTTP review, fake-client AWS contract tests, infrastructure-structure tests, evaluation-metric tests and the one-command demo bundle; test count is not accuracy.
 - Implemented evidence: first persistent frame number, timestamp, occupancy series, marked PNG, self-contained offline review page and local reviewer decision record.
 - Reflection mitigation: bright low-saturation change must fluctuate temporally to return `uncertain`. Stable white obstruction and a colored obstruction with glare remain `review_required` in synthetic tests.
 - AWS contract: boto3-compatible encrypted S3 evidence plus conditional DynamoDB pending state implemented and fake-client tested. No real AWS call, deployment or credential validation has occurred.
@@ -14,6 +14,7 @@
 - Not implemented: live AWS infrastructure, public endpoint, real-footage validation or calibrated reflection classification.
 - Real-camera readiness: a provenance-aware manifest scorer and protocol measure recall, false alerts, uncertainty and coverage. No real footage has been collected, so the milestone remains pending.
 - Submission materials: honest description, current/proposed architecture, limitations, five-minute demo script and remaining gate drafted in `docs/OPENCV_SUBMISSION_DRAFT.md`.
+- Reproducible demo: `python -m clearroute.demo --output clearroute-demo` creates explicitly synthetic inputs, JSON evidence, a marked frame and an offline review page.
 
 ## Next actionable step
 

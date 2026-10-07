@@ -1,4 +1,4 @@
-# Progress — verified 2026-10-06
+# Progress — verified 2026-10-07
 PR: https://github.com/abhinay5821-source/hackathon-os/pull/2
 Implemented baseline: https://github.com/abhinay5821-source/hackathon-os/commit/e11137c301470c110c1acf6a12c3893d48ec5273
 
@@ -16,7 +16,7 @@ Completion: 5 of 8 explicitly defined milestones (62.5%). Equal-weight milestone
 | Held-out real-camera validation | Pending; consented footage absent |
 | Final demo video, eligibility confirmation and submission package | Pending |
 
-29 tests pass. Tests include synthetic vision, local authenticated HTTP review, fake AWS clients, infrastructure structure checks and evaluation-metric handling. No real-camera or live AWS claims.
+30 tests pass from exact remote head `8cda73a`. Tests include synthetic vision, a reproducible demo bundle, local authenticated HTTP review, fake AWS clients, infrastructure structure checks and evaluation-metric handling. No real-camera or live AWS claims.
 
 Planning target: October 9, 2026 for a candidate package, conditional on external blockers being resolved. This is not a submission commitment. No entry has been submitted.
 Next build: run the documented held-out scorecard after consented real footage is available. Next independent build: create PrivacyGate's fictional access-control fixtures while GitLab Duo remains unavailable.
