@@ -39,4 +39,10 @@ Record actual completed work, tests and blockers. Use feature branches for imple
 Background research is scheduled separately. Installing GitHub alone does not create continuous coding execution; repo access and execution capability must be independently verified.
 
 ## Current status
-Planning initialized. No application code or benchmark exists yet.
+Superseded on 2026-10-07: ClearRoute has a synthetic-tested prototype in PR #2 and PrivacyGate has a fictional-data baseline in PR #3. They remain incomplete entries.
+
+## Active development focus — 2026-10-07
+
+User authorized Track C after reviewing all four IIT Mandi briefs and an independent critique. Focus new engineering on RepairLab until its source-rights and real-audio alignment gates pass. Pause competing new-feature work on ClearRoute and PrivacyGate; preserve existing branches. Do not trade quality for simultaneous builds. Research may continue only when it does not displace the active critical path.
+
+See docs/REPAIRLAB.md for six evidence-based readiness milestones, current test limits and October 13 conditional package target. The source/model gate is not yet passed; no registration or submission is authorized.
