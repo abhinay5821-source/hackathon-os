@@ -46,3 +46,9 @@ Superseded on 2026-10-07: ClearRoute has a synthetic-tested prototype in PR #2 a
 User authorized Track C after reviewing all four IIT Mandi briefs and an independent critique. Focus new engineering on RepairLab until its source-rights and real-audio alignment gates pass. Pause competing new-feature work on ClearRoute and PrivacyGate; preserve existing branches. Do not trade quality for simultaneous builds. Research may continue only when it does not displace the active critical path.
 
 See docs/REPAIRLAB.md for six evidence-based readiness milestones, current test limits and October 13 conditional package target. The source/model gate is not yet passed; no registration or submission is authorized.
+
+## Sole-target deadline priority — 2026-10-07
+
+User directs that the existing eligible project with the earliest verified future submission deadline is the only engineering target. RepairLab remains the sole target: IIT Mandi closes October 15, 2026 at 00:15 IST. Preserve other projects paused; do not resume them automatically when source/alignment gates pass.
+
+Comparison checked October 7: OpenCV closes October 26 Pacific time (header says 23:45 PDT while overview says 23:59; resolve before its submission); GitLab closes October 27 at 13:00 UTC (18:30 IST). These dates are later than IIT Mandi. Sources: https://multimodal-ai-hackathon-2026-7.devpost.com/updates/46710-problem-statements-are-live-multimodal-ai-hackathon-2026 ; https://opencv26.devpost.com/ ; https://gitlab-transcend.devpost.com/details/dates . After the active target is completed or expires, recheck eligibility and binding deadlines before selecting the next sole target.
