@@ -1,6 +1,12 @@
 # Detector evaluation
 
-Run:
+First generate predictions from a pair manifest that contains audio and alignment paths but no evaluation labels:
+
+```bash
+python -m repairlab.batch_detect pairs.jsonl --output predictions.jsonl --threshold 2.5
+```
+
+Then score them:
 
 ```bash
 python -m repairlab.evaluate_detector \
