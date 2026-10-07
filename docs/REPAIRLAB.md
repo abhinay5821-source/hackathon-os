@@ -1,6 +1,6 @@
 # RepairLab: Track C foundation
 
-Current scope: deterministic CPU CTC alignment from acoustic-model log probabilities, a local Wav2Vec2 real-audio adapter, source metadata gates and strict speaker/text holdout checks. A model and one real archive clip have been run on CPU; word timing accuracy remains unvalidated, no speech dataset is approved, and no delivery scores exist. See docs/REPAIRLAB_AUDIO_SMOKE.md. This is not an end-to-end speech analyzer or submission-ready build.
+Current scope: deterministic CPU CTC alignment from acoustic-model log probabilities, a local Wav2Vec2 real-audio adapter, independent manual-boundary scoring, source metadata gates and strict speaker/text holdout checks. A model and one real archive clip have been run on CPU; word timing accuracy remains unvalidated, no speech dataset is approved, and no delivery scores exist. See docs/REPAIRLAB_AUDIO_SMOKE.md and docs/ALIGNMENT_ANNOTATION.md. This is not an end-to-end speech analyzer or submission-ready build.
 
 ## Setup and checks
 
@@ -26,6 +26,7 @@ Research checked 2026-10-07:
 - NASA media policy is a candidate source-policy lead, not approval of any selected recording: https://www.nasa.gov/nasa-brand-center/images-and-media/ . Check third-party content and other restrictions individually.
 - Library of Congress directs users to item-level rights statements: https://www.loc.gov/legal/security-copyright-and-privacy/understanding-copyright/ . Hosting alone is not permission.
 - Candidate English acoustic model: https://huggingface.co/facebook/wav2vec2-base-960h . Model card lists Apache-2.0 and 16-kHz speech input. This verifies a model candidate, not downloaded weights, CPU speed or alignment quality.
+- Independent transcript lead: W3C hosts the same historical excerpt plus a separate HTML transcript as ACT test material. Its repository licenses documents under the W3C Document License, but recording-specific redistribution/derivative rights remain unclear, so the audio is not approved for the public dataset. Details and checksums are in docs/REPAIRLAB_AUDIO_SMOKE.md.
 
 ## Readiness checklist (0/6 complete; foundation underway)
 
@@ -42,4 +43,4 @@ Repair previews are optional sanity checks after the required pipeline. Never cl
 
 ## Test report: 2026-10-07
 
-Initial core: Python 3.12 / NumPy 2.3.5, 7/7 tests passed on handcrafted emissions and fictional provenance metadata. Current acoustic environment: NumPy 2.5.3, 10/10 tests passed including PCM loading and transcript checks. One real-audio smoke run completed, separately reported in docs/REPAIRLAB_AUDIO_SMOKE.md; no manual word-boundary accuracy or delivery-performance result is available. `git diff --check` passed.
+Initial core: Python 3.12 / NumPy 2.3.5, 7/7 tests passed on handcrafted emissions and fictional provenance metadata. Acoustic adapter increment: NumPy 2.5.3, 10/10 tests passed including PCM loading and transcript checks. Current increment: Python 3.12 / NumPy 2.3.5, 14/14 tests passed, adding strict human-reference provenance, subset coverage and median/p95/max boundary-error calculations. One real-audio smoke run completed, separately reported in docs/REPAIRLAB_AUDIO_SMOKE.md; no manual word-boundary accuracy or delivery-performance result is available. `git diff --check` passed.
