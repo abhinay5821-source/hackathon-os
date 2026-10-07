@@ -1,6 +1,6 @@
 # RepairLab: Track C foundation
 
-Current scope: deterministic CPU CTC alignment, a local Wav2Vec2 real-audio adapter, independent manual-boundary scoring, source gates, reproducible VCTK fetching, strict holdouts, deterministic quiet/pause/rush corruptions, a global-gain negative control, an alternate smooth quiet method, and a dataset writer that separates detector inputs from evaluation truth. The pinned model has run on one NASA archive clip and three licensed VCTK calibration clips, but word timing accuracy remains unvalidated and no delivery scores exist. See docs/REPAIRLAB_AUDIO_SMOKE.md, docs/REPAIRLAB_VCTK_ALIGNMENT.md, docs/ALIGNMENT_ANNOTATION.md, docs/REPAIRLAB_SOURCES.md and docs/REPAIRLAB_CORRUPTIONS.md. This is not an end-to-end speech analyzer or submission-ready build.
+Current scope: deterministic CPU CTC alignment, a local Wav2Vec2 real-audio adapter, independent manual-boundary scoring, source gates, reproducible VCTK fetching, strict holdouts, deterministic corruptions and controls, a dataset writer that separates detector inputs from evaluation truth, and a transparent word-level acoustic comparison baseline. The pinned model has run on one NASA archive clip and three licensed VCTK calibration clips, but word timing accuracy, feature thresholds and delivery scores remain unvalidated. See docs/REPAIRLAB_AUDIO_SMOKE.md, docs/REPAIRLAB_VCTK_ALIGNMENT.md, docs/ALIGNMENT_ANNOTATION.md, docs/REPAIRLAB_SOURCES.md, docs/REPAIRLAB_CORRUPTIONS.md and docs/REPAIRLAB_FEATURES.md. This is not an end-to-end speech analyzer or submission-ready build.
 
 ## Setup and checks
 
@@ -43,6 +43,8 @@ Internal package target: 2026-10-13, conditional on source and alignment gates. 
 Repair previews are optional sanity checks after the required pipeline. Never claim injected-flaw localization establishes listener comprehension or clinical benefit. Maintain a separate unseen-corruption test; the detector must not read injection labels or parameters. All derivatives of a source recording remain in its partition.
 
 ## Test report: 2026-10-07
+
+Feature/explanation increment: 40/40 tests passed. Five new synthetic tests cover pitch/FFT/energy extraction, word aggregation, within-speaker normalization, global-gain invariance, timestamped energy/pause deviations, mismatched transcripts and invalid audio. The development threshold is uncalibrated, and no claim is made about real-speech localization or delivery quality. Equations and limits: docs/REPAIRLAB_FEATURES.md.
 
 Dataset audit increment: 35/35 tests passed. New regressions verify that transcript/alignment changes alter clean derivative IDs, original-file hashes and rights assertions are exported without local paths, and a later invalid plan creates no partial output. Format v2 now binds derivative IDs to audio, transcript and alignment. All new checks use generated waveform fixtures and fictional rights metadata. Uploaded Track C and submission-guideline PDFs were extracted directly this session, confirming highly effective public speeches as the required final good baseline; VCTK is calibration-only.
 
