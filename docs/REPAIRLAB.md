@@ -1,6 +1,6 @@
 # RepairLab: Track C foundation
 
-Current scope: deterministic CPU CTC alignment from supplied acoustic-model log probabilities, source metadata gates and strict speaker/text holdout checks. No acoustic model has been downloaded or run, no speech dataset is approved, and no delivery scores exist. This is not an end-to-end speech analyzer or submission-ready build.
+Current scope: deterministic CPU CTC alignment from acoustic-model log probabilities, a local Wav2Vec2 real-audio adapter, source metadata gates and strict speaker/text holdout checks. A model and one real archive clip have been run on CPU; word timing accuracy remains unvalidated, no speech dataset is approved, and no delivery scores exist. See docs/REPAIRLAB_AUDIO_SMOKE.md. This is not an end-to-end speech analyzer or submission-ready build.
 
 ## Setup and checks
 
@@ -42,4 +42,4 @@ Repair previews are optional sanity checks after the required pipeline. Never cl
 
 ## Test report: 2026-10-07
 
-Python 3.12 / NumPy 2.3.5: `python -m unittest discover -s tests -v` passed 7/7 tests. Known emission token boundaries, repeated-token blank separation, impossible paths, invalid durations/token IDs, rights metadata rejection and held-out speaker/text leakage were checked. Emissions are handcrafted arrays; no recorded-speech or acoustic-model timing performance was evaluated. `git diff --check` passed.
+Initial core: Python 3.12 / NumPy 2.3.5, 7/7 tests passed on handcrafted emissions and fictional provenance metadata. Current acoustic environment: NumPy 2.5.3, 10/10 tests passed including PCM loading and transcript checks. One real-audio smoke run completed, separately reported in docs/REPAIRLAB_AUDIO_SMOKE.md; no manual word-boundary accuracy or delivery-performance result is available. `git diff --check` passed.
