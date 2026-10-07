@@ -19,3 +19,5 @@ Dashboard increment: 46/46 tests passed. `python -m repairlab.dashboard` now pro
 - PrivacyGate PR #3: https://github.com/abhinay5821-source/hackathon-os/pull/3 ; https://github.com/abhinay5821-source/hackathon-os/commit/481637fb4065c265c3e3322a7f99205a6a538722 ; eight fictional-data tests, actual GitLab/Duo/deployment pending.
 
 RepairLab draft PR #4: https://github.com/abhinay5821-source/hackathon-os/pull/4 ; foundation commit https://github.com/abhinay5821-source/hackathon-os/commit/841e7ca0cee25a0f23e0970f8cce05a63de19631 . Follow the branch history for the real-audio increment. Package target October 13 is conditional, not a completion promise.
+
+Timeline audit: overlay series now use their actual frame timestamps on one shared seconds axis. Previously each recording stretched to the same width, misleading when durations differed. Flagged intervals use the same shared axis. Existing 46 tests and JavaScript syntax check pass; browser interaction remains unvalidated. Next: effective-speech source rights and independent timing labels.
