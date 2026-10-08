@@ -61,3 +61,9 @@ Next: match a short prose passage to this recording, create independent start/en
 The archived White House item for President Obama's 12 March 2009 dedication remarks labels the specific video/audio `Public Domain`, links a downloadable MP3, and embeds the official transcript. A formal 53.9-second excerpt with repeated contrastive clauses was transcript-matched and successfully forced-aligned on CPU. Recording/excerpt hashes, delivery rationale, runtime and two-model diagnostic are in `docs/REPAIRLAB_OBAMA_ALIGNMENT.md`.
 
 This adds a second speaker with recording-level evidence; it does not by itself satisfy the final corpus or human timing gate. Audio remains private and uncommitted.
+
+## Third speaker candidate: Michelle Obama museum address (checked 2026-10-08)
+
+The archived White House item for the 8 May 2014 National Medal for Museum and Library Services remarks labels the specific recording `Public Domain`, links its MP3 and embeds an event transcript. A 28.65-second passage with repeated challenges and a three-part parallel list matched all 75 official normalized words in an independent locator pass and successfully ran through the CPU forced aligner. Exact hashes, runtime, delivery rationale and disagreement limits are in `docs/REPAIRLAB_MICHELLE_ALIGNMENT.md`.
+
+This yields three distinct provisional speakers/texts (Kennedy, Barack Obama and Michelle Obama), but does not turn three excerpts into a credible held-out evaluation. Blind human timing labels and additional excerpts remain required. A screened Biden item remains excluded because its transcript is explicitly “As Prepared for Delivery” and differs from the recording.
