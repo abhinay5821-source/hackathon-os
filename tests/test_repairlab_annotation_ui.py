@@ -1,4 +1,5 @@
 import http.client
+import hashlib
 import json
 import tempfile
 import threading
@@ -10,10 +11,10 @@ from repairlab.annotation_ui import handler_for, load_package
 
 
 def package(root):
-    root.mkdir(); (root / "audio.wav").write_bytes(b"RIFF fake fixture")
+    root.mkdir(); audio = b"RIFF fake fixture"; (root / "audio.wav").write_bytes(audio)
     (root / "manifest.json").write_text(json.dumps({
         "format": "repairlab-blind-annotation-v1", "clip_id": "clip-a",
-        "audio_sha256": "a" * 64, "prediction_included": False,
+        "audio_sha256": hashlib.sha256(audio).hexdigest(), "prediction_included": False,
         "selected_words": [{"word_index": 0, "word": "WE"}, {"word_index": 2, "word": "MOON"}],
     }))
 
@@ -34,6 +35,13 @@ class AnnotationUiTests(unittest.TestCase):
             data = json.loads((root / "manifest.json").read_text()); data["prediction_included"] = True
             (root / "manifest.json").write_text(json.dumps(data))
             with self.assertRaisesRegex(ValueError, "prediction-free"):
+                load_package(root)
+
+    def test_rejects_audio_that_does_not_match_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "package"; package(root)
+            (root / "audio.wav").write_bytes(b"RIFF replaced fixture")
+            with self.assertRaisesRegex(ValueError, "audio_sha256"):
                 load_package(root)
 
     def test_http_serves_page_audio_health_and_404(self):

@@ -1,5 +1,6 @@
 """Local browser UI for prediction-blind human word-boundary annotation."""
 import argparse
+import hashlib
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -30,8 +31,13 @@ def load_package(package):
     words = manifest.get("selected_words")
     if not isinstance(words, list) or not words:
         raise ValueError("Package needs selected_words")
+    audio = audio_path.read_bytes()
+    declared_hash = manifest.get("audio_sha256")
+    actual_hash = hashlib.sha256(audio).hexdigest()
+    if not isinstance(declared_hash, str) or declared_hash.lower() != actual_hash:
+        raise ValueError("audio.wav does not match manifest audio_sha256")
     safe = json.dumps(manifest, separators=(",", ":")).replace("</", "<\\/")
-    return HTML.replace("__MANIFEST__", safe).encode(), audio_path.read_bytes()
+    return HTML.replace("__MANIFEST__", safe).encode(), audio
 
 
 def handler_for(package):
