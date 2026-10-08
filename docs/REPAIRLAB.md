@@ -54,6 +54,8 @@ Repair previews are optional sanity checks after the required pipeline. Never cl
 
 ## Test report: 2026-10-07
 
+Blind-annotation audit increment: 68/68 tests passed. A new CLI requires two distinct annotator IDs, identical audio hashes and predeclared word sets, and explicit confirmation that predictions were hidden. It reports inter-annotator boundary disagreement and queues words outside a declared tolerance for adjudication without manufacturing a consensus by averaging. Tests use fictional boundaries; no human labels or alignment-accuracy result has been added. Protocol: docs/ALIGNMENT_ANNOTATION.md.
+
 Calibration increment: 60/60 tests passed. Two new tests cover nonempty partition enforcement, strict CLI JSON and the central leakage invariant: changing held-out truth changes its score but cannot change the threshold chosen from development data. Fixtures remain synthetic; no real-speech threshold is claimed.
 
 Ablation increment: 58/58 tests passed. Three new tests cover explicit feature subsets, invalid subset rejection, all four leave-one-group-out variants, expected loss of a synthetic energy-only signal, strict JSON and the actual CLI. This is synthetic implementation evidence; no real-speech feature-importance claim is made. See docs/REPAIRLAB_ABLATIONS.md.
