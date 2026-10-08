@@ -12,6 +12,7 @@ from repairlab.audit_annotations import audit_annotations
 def labels(annotator, shift=0.0):
     return {
         "evidence_type": "human_manual", "audio_sha256": "a" * 64,
+        "duration_seconds": 2.0,
         "annotation_method": "Auditory review plus waveform inspection",
         "annotated_at": "2026-10-08T00:00:00Z", "annotator_id": annotator,
         "prediction_hidden": True,
@@ -49,6 +50,16 @@ class AnnotationAuditTests(unittest.TestCase):
         second = labels("ann-b")
         second["audio_sha256"] = "b" * 64
         with self.assertRaisesRegex(ValueError, "SHA256"):
+            audit_annotations(labels("ann-a"), second)
+
+    def test_rejects_boundaries_outside_audio_duration(self):
+        second = labels("ann-b")
+        second["words"][1]["end_seconds"] = 2.01
+        with self.assertRaisesRegex(ValueError, "invalid boundary"):
+            audit_annotations(labels("ann-a"), second)
+        second = labels("ann-b")
+        second["duration_seconds"] = 2.1
+        with self.assertRaisesRegex(ValueError, "duration values must match"):
             audit_annotations(labels("ann-a"), second)
         second = labels("ann-b")
         second["words"].pop()
