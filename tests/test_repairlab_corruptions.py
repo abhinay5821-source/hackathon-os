@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from repairlab.corruptions import (global_gain_control, insert_pause, quiet_region,
+from repairlab.corruptions import (global_gain_control, global_vibrato_control, insert_pause, quiet_region,
                                    rush_region, smooth_quiet_region)
 
 
@@ -88,3 +88,18 @@ class CorruptionTests(unittest.TestCase):
             global_gain_control(self.audio, 1000, "raise")
         with self.assertRaisesRegex(ValueError, "variant"):
             global_gain_control(self.audio, 1000, "unknown")
+
+    def test_vibrato_control_preserves_duration_and_has_no_flaw_claim(self):
+        time = np.arange(16000, dtype=np.float32) / 16000
+        speech_like = (0.3 * np.sin(2 * np.pi * 180 * time)).astype(np.float32)
+        output, control = global_vibrato_control(speech_like, 16000, "subtle")
+        self.assertEqual(len(output), len(speech_like))
+        self.assertFalse(np.array_equal(output, speech_like))
+        self.assertLessEqual(np.max(np.abs(output)), 1.0)
+        self.assertFalse(control["expected_flaw"])
+        self.assertEqual(control["control_type"], "global_pitch_vibrato")
+        self.assertEqual(control["parameters"]["depth_cents"], 20.0)
+
+    def test_vibrato_control_rejects_unknown_variant(self):
+        with self.assertRaisesRegex(ValueError, "vibrato"):
+            global_vibrato_control(self.audio, 1000, "unknown")

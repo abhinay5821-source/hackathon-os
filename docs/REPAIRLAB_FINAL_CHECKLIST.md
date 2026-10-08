@@ -8,7 +8,8 @@ Status meanings: **done** = evidence exists; **blocked** = external/manual evide
 | Approved effective-public-speaker references | blocked | Recording-specific rights, derivative permission and suitability rationale required |
 | Independent human word-boundary error | blocked | Label hidden subset, then run `repairlab.evaluate_alignment` |
 | Contrastive severity-gradient data | open | Builder exists; freeze plan after approved sources |
-| Pitch flaw plus harmless pitch control | open | Not yet implemented |
+| Harmless pitch control | done in contract | Duration-preserving synthetic vibrato; final false-positive result pending |
+| Flat-pitch flaw | open | Not yet implemented; do not substitute the vibrato control |
 | Source/speaker/text holdouts | done in contract | Must be demonstrated on final dataset |
 | Timestamped feature explanations | done in prototype | Threshold and delivery meaning remain unvalidated |
 | Upload dashboard and overlays | done in prototype | Manual browser/judge-usability pass required |

@@ -1,5 +1,7 @@
 # Contrastive corruption foundation
 
+Negative controls include a non-clipping ±3 dB global gain change and a duration-preserving global pitch-vibrato warp (20 or 35 cents at 4.5 or 5.5 Hz). Both have `expected_flaw: false`; their parameters exist only in evaluation truth. The vibrato implementation is deterministic monotonic time warping, not studio-quality pitch shifting, and must be described as synthetic.
+
 `repairlab.corruptions` creates three deterministic, transcript-preserving synthetic flaw families with exact output-sample and output-time labels:
 
 | Family | Mild | Medium | Severe | Duration effect |

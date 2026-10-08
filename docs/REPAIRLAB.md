@@ -6,6 +6,8 @@ Submission drafts: docs/REPAIRLAB_SUBMISSION_DRAFT.md, docs/REPAIRLAB_DEMO_SCRIP
 
 Fresh-clone core evidence: docs/REPAIRLAB_FRESH_CLONE.md. It covers pinned lightweight dependencies and automated tests, not optional model/data downloads or real-speech validation.
 
+Pitch-control status: the dataset contract now includes a synthetic duration-preserving vibrato negative control whose metadata is hidden from the detector. Flat-pitch flaw generation and real control false-positive results remain open.
+
 Latest addition: leave-one-feature-group-out evaluation for energy, pitch, spectral and timing evidence. See docs/REPAIRLAB_ABLATIONS.md.
 
 Current scope: deterministic CPU CTC alignment, a local Wav2Vec2 real-audio adapter, independent manual-boundary scoring, source gates, reproducible VCTK fetching, strict holdouts, deterministic corruptions and controls, a dataset writer that separates detector inputs from evaluation truth, a transparent word-level acoustic comparison baseline, a CLI that exports pair analysis, a local upload/review dashboard with evidence playback and selectable overlays, a truth-isolated batch detector, and a detector evaluator with uninformed baselines. The pinned model has run on one NASA archive clip and three licensed VCTK calibration clips, but word timing accuracy, feature thresholds, browser interaction quality, dashboard usability and delivery scores remain unvalidated. See docs/REPAIRLAB_AUDIO_SMOKE.md, docs/REPAIRLAB_VCTK_ALIGNMENT.md, docs/ALIGNMENT_ANNOTATION.md, docs/REPAIRLAB_SOURCES.md, docs/REPAIRLAB_CORRUPTIONS.md, docs/REPAIRLAB_FEATURES.md, docs/REPAIRLAB_PIPELINE.md, docs/REPAIRLAB_DASHBOARD.md, docs/REPAIRLAB_BATCH.md and docs/REPAIRLAB_EVALUATION.md. This is not a submission-ready build.

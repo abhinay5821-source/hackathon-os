@@ -12,6 +12,8 @@ QUIET_DB = {"mild": 6.0, "medium": 12.0, "severe": 20.0}
 PAUSE_SECONDS = {"mild": 0.20, "medium": 0.45, "severe": 0.80}
 RUSH_FACTOR = {"mild": 1.15, "medium": 1.35, "severe": 1.65}
 GLOBAL_GAIN_DB = {"lower": -3.0, "raise": 3.0}
+VIBRATO = {"subtle": {"depth_cents": 20.0, "rate_hz": 4.5},
+           "moderate": {"depth_cents": 35.0, "rate_hz": 5.5}}
 
 
 def _audio(samples, sample_rate):
@@ -87,6 +89,34 @@ def global_gain_control(samples, sample_rate, variant):
         "control_type": "global_gain",
         "variant": variant,
         "parameters": {"gain_db": decibels},
+        "expected_flaw": False,
+        "provenance": "synthetic_negative_control_not_detector_input",
+    }
+
+
+def global_vibrato_control(samples, sample_rate, variant):
+    """Apply a small deterministic whole-clip pitch modulation as a negative control.
+
+    A monotonic time warp approximates vibrato while preserving sample count. It
+    is not a studio-quality pitch shifter and must be reported as synthetic.
+    """
+    values, rate = _audio(samples, sample_rate)
+    if variant not in VIBRATO:
+        raise ValueError("Unknown vibrato variant")
+    parameters = VIBRATO[variant]
+    time = np.arange(len(values), dtype=np.float64) / rate
+    ratio = 2.0 ** ((parameters["depth_cents"] *
+                     np.sin(2.0 * np.pi * parameters["rate_hz"] * time)) / 1200.0)
+    positions = np.cumsum(ratio)
+    positions -= positions[0]
+    if positions[-1] <= 0:
+        raise ValueError("Vibrato warp is degenerate")
+    positions *= (len(values) - 1) / positions[-1]
+    output = np.interp(positions, np.arange(len(values)), values).astype(np.float32)
+    return output, {
+        "control_type": "global_pitch_vibrato",
+        "variant": variant,
+        "parameters": {**parameters, "method": "monotonic_time_warp"},
         "expected_flaw": False,
         "provenance": "synthetic_negative_control_not_detector_input",
     }

@@ -109,6 +109,18 @@ class DatasetTests(unittest.TestCase):
         self.assertFalse(truth["expected_flaw"])
         self.assertEqual(truth["control"]["control_type"], "global_gain")
 
+    def test_pitch_control_is_hidden_from_detector_manifest(self):
+        output = self.root / "pitch-control"
+        plans = [{"recording_id": "rec-a", "partition": "development",
+                  "corruption": "control_pitch_vibrato", "variant": "subtle"}]
+        build_dataset(output, self.sources, plans)
+        detector = json.loads((output / "detector_manifest.jsonl").read_text())
+        truth = json.loads((output / "evaluation_truth.jsonl").read_text())
+        self.assertNotIn("control", detector)
+        self.assertNotIn("variant", detector)
+        self.assertEqual(truth["control"]["control_type"], "global_pitch_vibrato")
+        self.assertFalse(truth["expected_flaw"])
+
     def test_enforces_declared_held_out_corruption_method(self):
         plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "quiet",
                   "method": "hard_attenuation", "severity": "mild",

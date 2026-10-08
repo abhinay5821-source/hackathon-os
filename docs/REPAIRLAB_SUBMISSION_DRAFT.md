@@ -50,7 +50,7 @@ Required reporting:
 - region precision, recall and F1 at declared temporal IoU;
 - mean matched IoU and boundary error;
 - flaw-type confusion including missed and extra regions;
-- false positives on clean/global-gain/`PENDING PITCH` controls;
+- false positives on clean, global-gain and synthetic global-vibrato controls;
 - no-flaw, full-clip and seeded-random-region baselines;
 - energy, pitch, spectral and timing ablations;
 - unseen speaker, unseen text and alternate-method failures.

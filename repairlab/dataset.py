@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 
 from repairlab.audio_align import load_audio, normalize_transcript
-from repairlab.corruptions import (global_gain_control, insert_pause, quiet_region,
+from repairlab.corruptions import (global_gain_control, global_vibrato_control, insert_pause, quiet_region,
                                    rush_region, smooth_quiet_region)
 from repairlab.provenance import validate_source
 
@@ -67,6 +67,9 @@ def _transform(samples, sample_rate, words, plan):
         return samples.copy(), [], None
     if kind == "control_global_gain":
         output, control = global_gain_control(samples, sample_rate, plan.get("variant"))
+        return output, [], control
+    if kind == "control_pitch_vibrato":
+        output, control = global_vibrato_control(samples, sample_rate, plan.get("variant"))
         return output, [], control
     severity = plan.get("severity")
     start, end = _word_region(words, plan)
