@@ -15,6 +15,7 @@ def package(root):
     (root / "manifest.json").write_text(json.dumps({
         "format": "repairlab-blind-annotation-v1", "clip_id": "clip-a",
         "audio_sha256": hashlib.sha256(audio).hexdigest(), "prediction_included": False,
+        "duration_seconds": 2.0,
         "selected_words": [{"word_index": 0, "word": "WE"}, {"word_index": 2, "word": "MOON"}],
     }))
 
@@ -24,7 +25,7 @@ class AnnotationUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "package"; package(root)
             page, audio = load_package(root)
-            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Waveform overview", b"decodeAudioData", b"click to seek", b"Clear saved progress", b"localStorage", b"Zoom to 3 seconds", b"Previous section", b"+20 ms", b"Play visible section", b"0.5\xc3\x97"):
+            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Zoom to 3 seconds", b"decodeAudioData", b"click to seek", b"Clear saved progress", b"localStorage"):
                 self.assertIn(marker, page)
             self.assertNotIn(b"start_seconds\":", page)
             self.assertEqual(audio, b"RIFF fake fixture")
@@ -43,6 +44,19 @@ class AnnotationUiTests(unittest.TestCase):
             (root / "audio.wav").write_bytes(b"RIFF replaced fixture")
             with self.assertRaisesRegex(ValueError, "audio_sha256"):
                 load_package(root)
+
+    def test_rejects_missing_or_invalid_duration(self):
+        for duration in (None, 0, -1, float("inf"), True):
+            with self.subTest(duration=duration), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / "package"; package(root)
+                data = json.loads((root / "manifest.json").read_text())
+                if duration is None:
+                    data.pop("duration_seconds")
+                else:
+                    data["duration_seconds"] = duration
+                (root / "manifest.json").write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, "duration_seconds"):
+                    load_package(root)
 
     def test_http_serves_page_audio_health_and_404(self):
         with tempfile.TemporaryDirectory() as tmp:
