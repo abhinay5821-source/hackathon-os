@@ -11,6 +11,14 @@ python -m repairlab.prepare_annotation clip.wav transcript.txt blind-package \
 
 The package copies the validated 16-kHz mono WAV, normalizes the transcript, preselects words across the entire clip and emits an empty label template. It deliberately contains no alignment or prediction timestamps. Make a separate copy of the template for each annotator.
 
+Annotators do not need to edit JSON. Start the local, dependency-free annotation screen:
+
+```sh
+python -m repairlab.annotation_ui blind-package
+```
+
+Open `http://127.0.0.1:8766`, enter a non-personal annotator ID and the audio tool/browser version, then play, seek and mark each word's audible start and end. The browser downloads a completed JSON file locally. Use a fresh annotator ID and an unmodified package for the second pass; neither annotator should see model output or the other's labels.
+
 1. Verify the recording checksum and independently checked transcript.
 2. Predeclare the word indexes, then give the same checksum, transcript and indexes to two annotators. Hide model and forced-alignment timestamps from both annotators.
 3. In an audio editor, listen at normal speed, then inspect the waveform/spectrogram. Mark the audible onset and offset for the predeclared sample spanning the beginning, middle and end of the clip. Do not move a label after viewing the model prediction.
