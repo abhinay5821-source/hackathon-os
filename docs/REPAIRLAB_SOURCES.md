@@ -55,3 +55,9 @@ The download succeeded and remains a private research candidate, not a committed
 Provisional delivery rationale (a hypothesis, not listener evidence): the repeated power/poetry clauses offer parallel phrases for evaluating pause placement and emphasis. Select a short passage only after listening; historical importance alone is insufficient to label a speaker effective. Exclude quoted poetry from the first derivative set until its separate textual rights are assessed. One speaker cannot satisfy the speaker-holdout design.
 
 Next: match a short prose passage to this recording, create independent start/end annotations before inspecting predicted boundaries, run CPU forced alignment, and report absolute boundary errors. Keep the reference-source gate open until delivery review and additional speakers are documented.
+
+## Second speaker candidate: Obama at Lincoln Hall (checked 2026-10-08)
+
+The archived White House item for President Obama's 12 March 2009 dedication remarks labels the specific video/audio `Public Domain`, links a downloadable MP3, and embeds the official transcript. A formal 53.9-second excerpt with repeated contrastive clauses was transcript-matched and successfully forced-aligned on CPU. Recording/excerpt hashes, delivery rationale, runtime and two-model diagnostic are in `docs/REPAIRLAB_OBAMA_ALIGNMENT.md`.
+
+This adds a second speaker with recording-level evidence; it does not by itself satisfy the final corpus or human timing gate. Audio remains private and uncommitted.
