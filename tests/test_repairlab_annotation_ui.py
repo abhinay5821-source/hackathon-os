@@ -24,7 +24,7 @@ class AnnotationUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "package"; package(root)
             page, audio = load_package(root)
-            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Waveform overview", b"decodeAudioData", b"click to seek"):
+            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Waveform overview", b"decodeAudioData", b"click to seek", b"Clear saved progress", b"localStorage"):
                 self.assertIn(marker, page)
             self.assertNotIn(b"start_seconds\":", page)
             self.assertEqual(audio, b"RIFF fake fixture")
