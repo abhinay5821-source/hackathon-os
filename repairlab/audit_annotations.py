@@ -25,6 +25,9 @@ def _validate(reference, name):
             raise ValueError(f"{name} {field} is required")
     if reference.get("prediction_hidden") is not True:
         raise ValueError(f"{name} prediction_hidden must be true")
+    duration = _number(reference.get("duration_seconds"), f"{name} duration_seconds")
+    if duration <= 0:
+        raise ValueError(f"{name} duration_seconds must be positive")
     words = reference.get("words")
     if not isinstance(words, list) or not words:
         raise ValueError(f"{name} needs a nonempty words array")
@@ -38,7 +41,7 @@ def _validate(reference, name):
             raise ValueError(f"{name} word is required")
         start = _number(item.get("start_seconds"), f"{name} start_seconds")
         end = _number(item.get("end_seconds"), f"{name} end_seconds")
-        if not 0 <= start < end:
+        if not 0 <= start < end <= duration:
             raise ValueError(f"{name} has an invalid boundary at index {index}")
         indexed[index] = (word, start, end)
     return indexed
@@ -55,6 +58,8 @@ def audit_annotations(first, second, tolerance_seconds=0.1):
         raise ValueError("Annotator IDs must differ")
     if first["audio_sha256"] != second["audio_sha256"]:
         raise ValueError("Audio SHA256 values must match")
+    if first["duration_seconds"] != second["duration_seconds"]:
+        raise ValueError("Audio duration values must match")
     if set(a) != set(b):
         raise ValueError("Annotators must label the same predeclared word indexes")
 
