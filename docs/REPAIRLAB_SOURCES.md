@@ -40,3 +40,18 @@ Source: https://librivox.org/the-gettysburg-address-150th-anniversary-by-abraham
 - TED and contemporary speeches: excluded unless an individual recording has explicit derivative and redistribution permission.
 
 Source rights are now clear enough for a VCTK calibration subset, not for the final “effective delivery” reference set. The next gate is CPU alignment plus blind manual boundary labels on the selected VCTK clips; only then can milestone 1 be considered.
+
+## Recording-specific archive evidence: Amherst address (checked 2026-10-08)
+
+The JFK Library item `JFKWHA-234-003`, dated 26 October 1963, explicitly labels this sound recording **Public Domain**, identifies the White House Communications Agency as archival creator, and supplies a direct MP3 download. This is stronger evidence than an archive-wide assumption. The collection notice discusses United States copyright; this note does not assert a worldwide legal clearance.
+
+- Item and preferred citation: https://www.jfklibrary.org/asset-viewer/archives/jfkwha-234-003
+- Recording: https://static.jfklibrary.org/0x7drr3n0xjbx508575x6j24k601v320.mp3
+- Official transcript candidate: https://www.arts.gov/about/kennedy-transcript
+- Retrieved MP3: 35,247,638 bytes; ffprobe duration 881.162449 seconds; SHA256 `e1a8563994e6dc25a1d863f0dd12c2bcdfe5abb3d57720666823059d1e848461`.
+
+The download succeeded and remains a private research candidate, not a committed/public dataset. The NEA transcript starts at the national-strength passage; do not assume it covers the full recording or includes applause, introductions, repetitions and deviations. Exact excerpt matching remains pending.
+
+Provisional delivery rationale (a hypothesis, not listener evidence): the repeated power/poetry clauses offer parallel phrases for evaluating pause placement and emphasis. Select a short passage only after listening; historical importance alone is insufficient to label a speaker effective. Exclude quoted poetry from the first derivative set until its separate textual rights are assessed. One speaker cannot satisfy the speaker-holdout design.
+
+Next: match a short prose passage to this recording, create independent start/end annotations before inspecting predicted boundaries, run CPU forced alignment, and report absolute boundary errors. Keep the reference-source gate open until delivery review and additional speakers are documented.
