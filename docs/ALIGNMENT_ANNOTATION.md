@@ -2,6 +2,15 @@
 
 This protocol creates an independent timing reference for the real-audio gate. Model output, forced-alignment output and injection metadata must not be used to choose the reference boundaries.
 
+Create the prediction-free package before either annotator sees model output:
+
+```sh
+python -m repairlab.prepare_annotation clip.wav transcript.txt blind-package \
+  --clip-id source-excerpt --sample-count 12
+```
+
+The package copies the validated 16-kHz mono WAV, normalizes the transcript, preselects words across the entire clip and emits an empty label template. It deliberately contains no alignment or prediction timestamps. Make a separate copy of the template for each annotator.
+
 1. Verify the recording checksum and independently checked transcript.
 2. Predeclare the word indexes, then give the same checksum, transcript and indexes to two annotators. Hide model and forced-alignment timestamps from both annotators.
 3. In an audio editor, listen at normal speed, then inspect the waveform/spectrogram. Mark the audible onset and offset for the predeclared sample spanning the beginning, middle and end of the clip. Do not move a label after viewing the model prediction.
