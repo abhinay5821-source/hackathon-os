@@ -2,8 +2,9 @@ import unittest
 
 import numpy as np
 
-from repairlab.corruptions import (global_gain_control, global_vibrato_control, insert_pause, quiet_region,
-                                   rush_region, smooth_quiet_region)
+from repairlab.corruptions import (flat_pitch_region, global_gain_control, global_vibrato_control,
+                                   insert_pause, quiet_region, rush_region, smooth_quiet_region)
+from repairlab.features import extract_frame_features
 
 
 class CorruptionTests(unittest.TestCase):
@@ -103,3 +104,27 @@ class CorruptionTests(unittest.TestCase):
     def test_vibrato_control_rejects_unknown_variant(self):
         with self.assertRaisesRegex(ValueError, "vibrato"):
             global_vibrato_control(self.audio, 1000, "unknown")
+
+    def test_flat_pitch_preserves_duration_region_and_reduces_f0_spread(self):
+        rate = 16000
+        time = np.arange(rate * 2, dtype=np.float64) / rate
+        instantaneous = 120.0 + 90.0 * time / time[-1]
+        phase = 2.0 * np.pi * np.cumsum(instantaneous) / rate
+        source = (0.3 * np.sin(phase)).astype(np.float32)
+        output, label = flat_pitch_region(source, rate, 0.2, 1.8, "severe")
+        self.assertEqual(len(output), len(source))
+        np.testing.assert_array_equal(output[:3200], source[:3200])
+        np.testing.assert_array_equal(output[28800:], source[28800:])
+        before = extract_frame_features(source[3200:28800], rate)["f0_hz"]
+        after = extract_frame_features(output[3200:28800], rate)["f0_hz"]
+        before, after = before[np.isfinite(before)], after[np.isfinite(after)]
+        self.assertLess(np.std(after), np.std(before))
+        self.assertEqual(label["flaw_type"], "flat_pitch")
+        self.assertEqual(label["parameters"]["strength"], 1.0)
+
+    def test_flat_pitch_rejects_unvoiced_and_unknown_severity(self):
+        silent = np.zeros(16000, dtype=np.float32)
+        with self.assertRaisesRegex(ValueError, "voiced"):
+            flat_pitch_region(silent, 16000, 0.1, 0.9, "medium")
+        with self.assertRaisesRegex(ValueError, "severity"):
+            flat_pitch_region(self.audio, 1000, 0.2, 0.8, "unknown")

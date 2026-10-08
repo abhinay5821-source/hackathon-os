@@ -121,6 +121,20 @@ class DatasetTests(unittest.TestCase):
         self.assertEqual(truth["control"]["control_type"], "global_pitch_vibrato")
         self.assertFalse(truth["expected_flaw"])
 
+    def test_flat_pitch_label_is_hidden_from_detector_manifest(self):
+        output = self.root / "flat-pitch"
+        plans = [{"recording_id": "rec-a", "partition": "development",
+                  "corruption": "flat_pitch", "severity": "medium",
+                  "start_word_index": 0, "end_word_index": 3}]
+        build_dataset(output, self.sources, plans)
+        detector = json.loads((output / "detector_manifest.jsonl").read_text())
+        truth = json.loads((output / "evaluation_truth.jsonl").read_text())
+        self.assertNotIn("corruption", detector)
+        self.assertNotIn("severity", detector)
+        self.assertEqual(truth["labels"][0]["flaw_type"], "flat_pitch")
+        self.assertEqual(truth["labels"][0]["word_region"],
+                         {"start_word_index": 0, "end_word_index": 3})
+
     def test_enforces_declared_held_out_corruption_method(self):
         plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "quiet",
                   "method": "hard_attenuation", "severity": "mild",

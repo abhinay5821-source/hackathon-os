@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 
 from repairlab.audio_align import load_audio, normalize_transcript
-from repairlab.corruptions import (global_gain_control, global_vibrato_control, insert_pause, quiet_region,
-                                   rush_region, smooth_quiet_region)
+from repairlab.corruptions import (flat_pitch_region, global_gain_control, global_vibrato_control,
+                                   insert_pause, quiet_region, rush_region, smooth_quiet_region)
 from repairlab.provenance import validate_source
 
 
@@ -86,6 +86,8 @@ def _transform(samples, sample_rate, words, plan):
         output, label = rush_region(samples, sample_rate, start, end, severity)
     elif kind == "inserted_pause":
         output, label = insert_pause(samples, sample_rate, start, severity)
+    elif kind == "flat_pitch":
+        output, label = flat_pitch_region(samples, sample_rate, start, end, severity)
     else:
         raise ValueError("Unknown corruption")
     label["word_region"] = {key: plan[key] for key in
@@ -135,7 +137,8 @@ def build_dataset(output_dir, sources, plans):
 
     def method_signature(plan):
         defaults = {"quiet": "hard_attenuation", "rushed": "linear_resampling_pitch_shifting_baseline",
-                    "inserted_pause": "silence_insertion"}
+                    "inserted_pause": "silence_insertion",
+                    "flat_pitch": "autocorrelation_guided_monotonic_time_warp"}
         return plan.get("corruption"), plan.get("method", defaults.get(plan.get("corruption"), "default"))
 
     held_out_methods = set()

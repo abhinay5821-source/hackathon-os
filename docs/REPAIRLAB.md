@@ -54,6 +54,8 @@ Repair previews are optional sanity checks after the required pipeline. Never cl
 
 ## Test report: 2026-10-07
 
+Flat-pitch increment: 77/77 tests passed. A new duration-preserving, word-region corruption estimates an autocorrelation F0 track and applies a severity-weighted monotonic warp toward the voiced median. Tests verify byte-identical audio outside the selected region, reduced estimated F0 spread on a synthetic chirp, rejection of unvoiced/invalid inputs, exact hidden generator labels and absence of corruption/severity fields from detector manifests. This is a synthetic CPU approximation; naturalness, perceptual severity and real-speech performance remain unvalidated.
+
 Annotation-UI increment: 74/74 tests passed. `python -m repairlab.annotation_ui` serves a package locally with audio playback, current-time display, per-word start/end controls, required annotator/method fields and client-side JSON download. It rejects packages that do not explicitly declare predictions absent, serves no external assets and does not send or persist labels. HTTP route tests cover the page, audio, health and missing-resource responses. Browser usability and human annotation quality remain manually unvalidated.
 
 Blind-package increment: 71/71 tests passed. `python -m repairlab.prepare_annotation` validates and copies a short 16-kHz mono WAV, normalizes its transcript, deterministically preselects words across the full clip and emits prompts plus an empty label template containing no model or alignment timestamps. A private smoke run packaged 15 words spanning indexes 0–142 of the 53.9-second Obama excerpt; no labels were fabricated or committed. Protocol: docs/ALIGNMENT_ANNOTATION.md.

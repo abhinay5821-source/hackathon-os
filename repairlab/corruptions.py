@@ -14,6 +14,7 @@ RUSH_FACTOR = {"mild": 1.15, "medium": 1.35, "severe": 1.65}
 GLOBAL_GAIN_DB = {"lower": -3.0, "raise": 3.0}
 VIBRATO = {"subtle": {"depth_cents": 20.0, "rate_hz": 4.5},
            "moderate": {"depth_cents": 35.0, "rate_hz": 5.5}}
+FLAT_PITCH_STRENGTH = {"mild": 0.35, "medium": 0.65, "severe": 1.0}
 
 
 def _audio(samples, sample_rate):
@@ -120,6 +121,45 @@ def global_vibrato_control(samples, sample_rate, variant):
         "expected_flaw": False,
         "provenance": "synthetic_negative_control_not_detector_input",
     }
+
+
+def flat_pitch_region(samples, sample_rate, start_seconds, end_seconds, severity):
+    """Reduce estimated F0 movement with a deterministic local time warp.
+
+    This is a CPU baseline, not a studio-quality pitch shifter. It uses only
+    acoustic estimates from the selected region and returns exact generator
+    labels; listener naturalness must be evaluated separately.
+    """
+    from repairlab.features import extract_frame_features
+
+    values, rate = _audio(samples, sample_rate)
+    if severity not in FLAT_PITCH_STRENGTH:
+        raise ValueError("Unknown flat-pitch severity")
+    start, end = _region(start_seconds, end_seconds, rate, len(values))
+    source = values[start:end]
+    features = extract_frame_features(source, rate, frame_seconds=0.04, hop_seconds=0.01)
+    times = np.asarray(features["frame_center_seconds"], dtype=float) * rate
+    pitches = np.asarray(features["f0_hz"], dtype=float)
+    finite = np.isfinite(pitches)
+    if np.count_nonzero(finite) < 3:
+        raise ValueError("Flat-pitch region needs at least three voiced pitch frames")
+    target = float(np.median(pitches[finite]))
+    sample_positions = np.arange(len(source), dtype=float)
+    track = np.interp(sample_positions, times[finite], pitches[finite],
+                      left=pitches[finite][0], right=pitches[finite][-1])
+    strength = FLAT_PITCH_STRENGTH[severity]
+    ratio = np.power(target / np.maximum(track, 1e-6), strength)
+    warped_positions = np.cumsum(ratio)
+    warped_positions -= warped_positions[0]
+    if warped_positions[-1] <= 0:
+        raise ValueError("Flat-pitch warp is degenerate")
+    warped_positions *= (len(source) - 1) / warped_positions[-1]
+    transformed = np.interp(warped_positions, sample_positions, source).astype(np.float32)
+    output = values.copy(); output[start:end] = transformed
+    return output, _label("flat_pitch", severity, start, end, rate,
+                          {"strength": strength, "target_f0_hz": target,
+                           "method": "autocorrelation_guided_monotonic_time_warp",
+                           "claim_limit": "synthetic CPU approximation; naturalness unvalidated"})
 
 
 def insert_pause(samples, sample_rate, at_seconds, severity):
