@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import math
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from pathlib import Path
 HTML = r'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>RepairLab blind annotation</title><style>
 :root{color-scheme:dark;--bg:#0b1020;--card:#151c31;--ink:#f4f6fb;--muted:#aab4ce;--accent:#62d6a7}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,sans-serif}main{max-width:960px;margin:auto;padding:24px}.card{background:var(--card);padding:18px;border-radius:14px;margin:14px 0}audio,canvas{width:100%}canvas{height:150px;background:#0e1528;border:1px solid #34405d;border-radius:8px;cursor:crosshair}input,button{font:inherit;padding:8px;border-radius:8px}input{background:#0e1528;color:var(--ink);border:1px solid #34405d}button{border:0;font-weight:700;cursor:pointer}.mark{background:#e9efff;color:#11182b}.save{background:var(--accent);color:#09251b}.muted{color:var(--muted)}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #303a54;text-align:left}.done{color:var(--accent)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:650px){.grid{grid-template-columns:1fr}}</style></head><body><main>
 <h1>RepairLab blind annotation</h1><p class="muted">Model predictions are not included. Annotate only what you hear and see in the waveform of your audio player.</p>
-<section class="card"><audio id="audio" controls src="/audio.wav" preload="metadata"></audio><p class="muted">Waveform overview — click to seek. Zoom your browser for finer placement and replay each boundary.</p><canvas id="wave" width="900" height="150" aria-label="Audio waveform; click to seek"></canvas><p>Current time: <strong id="time">0.000</strong>s</p><div class="grid"><label>Annotator ID<input id="annotator" placeholder="ann-a"></label><label>Tool/version<input id="method" placeholder="RepairLab browser waveform v1"></label></div></section>
+<section class="card"><audio id="audio" controls src="/audio.wav" preload="metadata"></audio><p class="muted">Click the waveform to seek. Use “Zoom to 3 seconds” and fine seeking to place each boundary.</p><canvas id="wave" width="900" height="150" aria-label="Audio waveform; click to seek"></canvas><p>Current time: <strong id="time">0.000</strong>s</p><div class="grid"><label>Annotator ID<input id="annotator" placeholder="ann-a"></label><label>Tool/version<input id="method" placeholder="RepairLab browser waveform v1"></label></div></section>
 <section class="card"><table><thead><tr><th>#</th><th>Word</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></section>
 <button class="save" id="download">Download completed JSON</button> <button class="mark" id="reset">Clear saved progress</button><p id="message" class="muted"></p>
 <script>const manifest=__MANIFEST__;const audio=document.getElementById('audio'),wave=document.getElementById('wave'),storageKey='repairlab-annotation-'+manifest.audio_sha256,values=new Map();let peaks=[];const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
@@ -39,6 +40,9 @@ def load_package(package):
     words = manifest.get("selected_words")
     if not isinstance(words, list) or not words:
         raise ValueError("Package needs selected_words")
+    duration = manifest.get("duration_seconds")
+    if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not math.isfinite(duration) or duration <= 0:
+        raise ValueError("Package needs a positive finite duration_seconds")
     audio = audio_path.read_bytes()
     declared_hash = manifest.get("audio_sha256")
     actual_hash = hashlib.sha256(audio).hexdigest()
