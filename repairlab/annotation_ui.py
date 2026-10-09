@@ -40,6 +40,18 @@ def load_package(package):
     words = manifest.get("selected_words")
     if not isinstance(words, list) or not words:
         raise ValueError("Package needs selected_words")
+    indexes = set()
+    for word in words:
+        if not isinstance(word, dict):
+            raise ValueError("Each selected word needs a word_index and word")
+        index, text = word.get("word_index"), word.get("word")
+        if isinstance(index, bool) or not isinstance(index, int) or index < 0:
+            raise ValueError("Each selected word needs a non-negative integer word_index")
+        if index in indexes:
+            raise ValueError("selected_words contains a duplicate word_index")
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("Each selected word needs non-empty word text")
+        indexes.add(index)
     duration = manifest.get("duration_seconds")
     if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not math.isfinite(duration) or duration <= 0:
         raise ValueError("Package needs a positive finite duration_seconds")
