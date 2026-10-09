@@ -58,6 +58,23 @@ class AnnotationUiTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "duration_seconds"):
                     load_package(root)
 
+    def test_rejects_malformed_or_duplicate_selected_words(self):
+        cases = (
+            ([{"word_index": 0, "word": "WE"}, {"word_index": 0, "word": "MOON"}], "duplicate"),
+            ([{"word_index": True, "word": "WE"}], "word_index"),
+            ([{"word_index": -1, "word": "WE"}], "word_index"),
+            ([{"word_index": 0, "word": "  "}], "word text"),
+            (["WE"], "word_index and word"),
+        )
+        for words, message in cases:
+            with self.subTest(words=words), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / "package"; package(root)
+                data = json.loads((root / "manifest.json").read_text())
+                data["selected_words"] = words
+                (root / "manifest.json").write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, message):
+                    load_package(root)
+
     def test_http_serves_page_audio_health_and_404(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "package"; package(root)
