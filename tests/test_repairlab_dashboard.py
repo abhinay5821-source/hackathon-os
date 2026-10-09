@@ -50,7 +50,8 @@ class DashboardTests(unittest.TestCase):
     def test_dashboard_has_uploads_overlay_regions_and_uncertainty(self):
         for marker in ("Baseline WAV", "Participant WAV", "Evidence playback",
                        "Acoustic overlay", "Pitch (Hz)", "Play region",
-                       "Flagged regions", "Uncertainty", "fetch('/analyze'"):
+                       "Flagged regions", "Measured evidence", "Suggested action",
+                       "Uncertainty", "fetch('/analyze'"):
             self.assertIn(marker, HTML)
         self.assertGreater(MAX_REQUEST_BYTES, 4 * 1024 * 1024)
 
