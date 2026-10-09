@@ -60,6 +60,22 @@ class FeatureTests(unittest.TestCase):
         self.assertIn("preceding_pause_seconds", region["feature_deltas"])
         self.assertEqual(region["candidate_flaw_type"], "inserted_pause")
         self.assertTrue(all("normalized value minus baseline" in text for text in region["explanations"]))
+        self.assertEqual({item["feature"] for item in region["evidence"]},
+                         {"energy_db", "preceding_pause_seconds"})
+        self.assertIn("longer", region["interpretation"])
+        self.assertIn("less pause", region["suggested_action"])
+        self.assertIn("not a universal optimum", region["action_basis"])
+
+    def test_unclassified_deviation_abstains_from_prescribing_a_correction(self):
+        baseline = rows([-20] * 5)
+        participant = rows([-20] * 5)
+        participant[2]["f0_hz"] = 260.0
+        result = compare_word_features(baseline, participant, threshold=2.5)
+        region = next(item for item in result["regions"] if item["word"] == "W2")
+        self.assertEqual(region["candidate_flaw_type"], "unclassified_acoustic_deviation")
+        self.assertIn("cannot justify", region["interpretation"])
+        self.assertIn("no automatic correction", region["suggested_action"])
+        self.assertIn("Abstention", region["action_basis"])
 
     def test_rejects_mismatched_transcript_and_bad_audio(self):
         baseline = rows([-20] * 5); participant = rows([-20] * 5)
