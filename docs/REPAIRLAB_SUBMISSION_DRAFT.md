@@ -18,6 +18,7 @@ RepairLab combines:
 4. Timestamped mathematical explanations and uncertainty statements.
 5. A contrastive dataset protocol with severity gradients, controls, exact transformed labels and source-level speaker/text holdouts.
 6. Truth-isolated detection, dev-only threshold calibration, held-out scoring, uninformed baselines and feature-group ablations.
+7. A prediction-blind local annotation workflow for independently measuring forced-alignment boundary error.
 
 The intended novelty is the auditable experimental contract: every detected region can be traced to aligned measurements, while corruption truth and generator parameters remain inaccessible to the detector. Novelty relative to published prior art is `PENDING PRIMARY-SOURCE REVIEW`.
 
@@ -38,7 +39,7 @@ The local dashboard provides synchronized evidence overlays, flagged time region
 
 Final reference recordings must be legally reusable examples of highly effective public delivery with recording-specific rights and a written suitability rationale. `PENDING: APPROVED REFERENCES AND LICENSE TABLE`.
 
-VCTK CC BY 4.0 clips are used only for calibration of audio ingestion and alignment; they are not presented as effective-public-speaker exemplars. Synthetic derivatives include quiet, rushed and inserted-pause severity gradients. Global gain is a harmless control. Alternate corruption methods are held out. All derivatives of one recording remain in one partition, with speaker and text identities disjoint across partitions.
+VCTK CC BY 4.0 clips are used only for calibration of audio ingestion and alignment; they are not presented as effective-public-speaker exemplars. Synthetic derivatives include quiet, rushed, inserted-pause and flat-pitch severity gradients. Global gain and low-depth global vibrato are declared negative controls. Alternate corruption methods are held out. All derivatives of one recording remain in one partition, with speaker and text identities disjoint across partitions.
 
 Detector inputs exclude corruption type, severity, expected outcome, labels and transformation parameters. Synthetic, self-recorded and real-user evidence are reported separately.
 
@@ -55,7 +56,7 @@ Required reporting:
 - energy, pitch, spectral and timing ablations;
 - unseen speaker, unseen text and alternate-method failures.
 
-Current automated status: 60 tests validate software contracts and synthetic fixtures. `PENDING: FROZEN DATASET COUNTS, REAL ALIGNMENT ERROR, HELD-OUT DETECTOR TABLES AND FAILURE EXAMPLES.` Passing code tests is not detector-performance evidence.
+Current automated status: 81 tests validate software contracts, HTTP routes and synthetic fixtures. The current annotation ZIP also passes integrity checking, but its browser interactions remain manually unverified. `PENDING: FROZEN DATASET COUNTS, REAL ALIGNMENT ERROR, HELD-OUT DETECTOR TABLES AND FAILURE EXAMPLES.` Passing code tests is not detector-performance evidence.
 
 ## 6. Limitations, ethics and reproducibility
 
@@ -63,4 +64,4 @@ Forced alignment can produce plausible timestamps for an incorrect transcript. P
 
 RepairLab must not penalize accent, neurodivergence or disability, and must not make medical or therapeutic claims. Users should control their recordings and understand the uncertainty of every flag.
 
-Reproduction requires Python 3.12, pinned dependencies, public source/dataset links, exact manifests and seeds. A clean Linux/Python 3.12.14 clone of commit `b2e0afb` installed `numpy==2.3.5` and passed 60/60 core tests in 2.856 seconds. This does not cover optional model/data downloads. `PENDING: PUBLIC DATASET URL, FINAL COMMIT SHA AND FULL MODEL/DATA RUNTIME TABLE.`
+Reproduction requires Python 3.12, pinned dependencies, public source/dataset links, exact manifests and seeds. An earlier clean Linux/Python 3.12.14 clone of commit `b2e0afb` installed `numpy==2.3.5` and passed the then-current 60/60 core tests in 2.856 seconds. A restored checkout at commit `c79bcb4` passed the current 81/81 suite in 2.111 seconds, but that recovery run was not a new isolated-environment installation. Neither result covers optional model/data downloads. `PENDING: FINAL CLEAN-VENV RUN, PUBLIC DATASET URL, FINAL COMMIT SHA AND FULL MODEL/DATA RUNTIME TABLE.`
