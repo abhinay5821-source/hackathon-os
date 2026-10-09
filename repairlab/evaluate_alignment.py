@@ -8,6 +8,7 @@ import argparse
 import json
 import math
 import statistics
+import re
 from pathlib import Path
 
 
@@ -35,6 +36,14 @@ def evaluate_alignment(prediction, reference):
     for field in ("audio_sha256", "annotation_method", "annotated_at"):
         if not isinstance(reference.get(field), str) or not reference[field].strip():
             raise ValueError(f"Reference {field} is required")
+    reference_hash = reference["audio_sha256"].lower()
+    prediction_hash = prediction.get("audio_sha256")
+    if not re.fullmatch(r"[0-9a-f]{64}", reference_hash):
+        raise ValueError("Reference audio_sha256 must be 64 lowercase hexadecimal characters")
+    if not isinstance(prediction_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", prediction_hash):
+        raise ValueError("Prediction audio_sha256 must be 64 lowercase hexadecimal characters")
+    if prediction_hash != reference_hash:
+        raise ValueError("Prediction and reference audio_sha256 do not match")
     predicted = prediction.get("words")
     labelled = reference.get("words")
     if not isinstance(predicted, list) or not predicted or not isinstance(labelled, list) or not labelled:
@@ -42,6 +51,11 @@ def evaluate_alignment(prediction, reference):
     duration = _finite_number(prediction.get("duration_seconds"), "duration_seconds")
     if duration <= 0:
         raise ValueError("duration_seconds must be positive")
+    reference_duration = _finite_number(reference.get("duration_seconds"), "reference duration_seconds")
+    if reference_duration <= 0:
+        raise ValueError("reference duration_seconds must be positive")
+    if not math.isclose(duration, reference_duration, rel_tol=0, abs_tol=1e-6):
+        raise ValueError("Prediction and reference duration_seconds do not match")
 
     starts, ends = [], []
     seen = set()
