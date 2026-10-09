@@ -38,7 +38,9 @@ class VerifyDatasetTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_verifies_complete_dataset_and_cli(self):
-        self.assertTrue(verify_dataset(self.dataset)["verified"])
+        report = verify_dataset(self.dataset)
+        self.assertTrue(report["verified"])
+        self.assertIn("build.json", report["files"])
         completed = subprocess.run(
             [sys.executable, "-m", "repairlab.verify_dataset", str(self.dataset)],
             check=True, capture_output=True, text=True)
