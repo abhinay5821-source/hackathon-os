@@ -1,4 +1,6 @@
-# Status — 2026-10-07
+# Status — 2026-10-09
+
+Current snapshot (2026-10-09): RepairLab remains the sole engineering target. The latest implementation adds SHA-256 hashes for every generated WAV to the dataset build record; 82/82 tests passed in 2.190 seconds. This is dataset-integrity evidence, not a frozen real-speech evaluation. Windows annotation controls, independent human boundary measurements, approved final source corpus, held-out results, public dataset link and submission media remain open. Next human action: the four-control Windows smoke test using annotation-pack v8; next independent engineering action: verify frozen dataset bytes before evaluation. Implementation/test head: https://github.com/abhinay5821-source/hackathon-os/commit/8abc575806fb34f16f9ef8990c31aa676521afdd ; draft PR: https://github.com/abhinay5821-source/hackathon-os/pull/4 . Older paragraphs below are historical increments, not current readiness statements.
 
 Active focus: RepairLab, IIT Mandi Track C, branch `repairlab/ctc-foundation`.
 
