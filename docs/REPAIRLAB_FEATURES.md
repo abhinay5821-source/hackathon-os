@@ -17,6 +17,16 @@ The participant delta for a word is `z_participant - z_baseline`. A region is re
 
 Each returned region now separates four things: measured evidence (raw baseline and participant values, units, normalized delta and threshold), a conservative interpretation, a suggested rehearsal action, and the action's evidentiary basis. Pause, duration and local-energy candidates can produce quantified reference-based actions. Other acoustic deviations explicitly abstain from prescribing a correction. Suggested amounts describe the measured gap to this reference performance; they are not universal delivery targets.
 
+## Development scoring rubric
+
+The pair result includes a deterministic 0–100 development rubric. Its declared component weights are timing 0.35, energy 0.25, pitch 0.25 and spectral 0.15. For each finite word-feature delta `d`, threshold `t`, and severity cap `c=2`:
+
+`p = min(max(abs(d) - t, 0) / (c * t), 1)`
+
+Each component is `100 * (1 - mean(p))`. The overall score is the weighted mean of available components; feature-subset ablations renormalize over available weights. The JSON records the formula, threshold, weights, finite-measurement counts and status `development_default_uncalibrated`.
+
+This score is a reproducible engineering rubric, not a validated judge score. The threshold must be selected on development sources only using `repairlab.calibrate_threshold`, then locked before held-out scoring. Weights and severity cap must also be frozen before held-out execution. Do not tune them using held-out labels or describe 100 as perfect human delivery.
+
 ## Claim limits
 
 The current threshold of 2.5 is a development default, not a validated scoring rubric. Autocorrelation pitch is a transparent CPU baseline and can produce octave errors, especially for noisy, breathy or multi-pitch audio. Spectral centroid and zero-crossing rate are proxies, not direct measures of vocal clarity. Word spans inherit all forced-alignment errors. Short clips, flat feature sequences and missing pitch values reduce reliability.
