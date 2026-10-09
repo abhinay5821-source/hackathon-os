@@ -1,6 +1,6 @@
 # Five-minute demo script
 
-> Record only after the fresh-clone run and final evidence tables exist. Show the running project continuously; do not replace missing behavior with slides.
+> Record only after the final package freeze, a fresh-clone rerun, the Windows browser-control smoke test, and the final evidence tables exist. Show the running project continuously; do not replace missing behavior with slides. Prediction-blind human boundary annotations evaluate the aligner; they are not training data.
 
 ## 0:00–0:30 — problem and boundary
 
@@ -26,12 +26,18 @@ Show the detector manifest and evaluation truth as separate files. Explain sourc
 
 Show the frozen report: alignment error, held-out region metrics, confusion matrix, control false positives, naive baselines and feature ablations. Clearly label synthetic versus real-speech results. Mention that threshold selection used development data only.
 
+If independent human boundary measurements or frozen held-out results are still missing, do not record this section as though they exist. Show the corresponding checklist item as incomplete, describe only the verified software behavior, and do not claim alignment precision or detector accuracy.
+
 ## 4:30–5:00 — close
 
 Summarize the contribution: transparent localization, causal numerical evidence and an auditable evaluation contract. End with limitations and the public repository/dataset link.
 
 ## Recording checks
 
+- The four-step Windows annotation-control test passed in Chrome or Edge; record the browser/version and result.
+- Two independent, prediction-blind boundary files were audited and adjudicated before quoting alignment error.
+- The held-out evaluation command was rerun after the final dataset freeze; report its exact commit and manifest hashes.
+- The final package was reproduced from a fresh clone after the last code/data change.
 - English narration or accurate English subtitles.
 - Duration between 3 and 10 minutes.
 - Repository and dataset links visible and public.
