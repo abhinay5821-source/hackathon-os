@@ -48,6 +48,8 @@ class FeatureTests(unittest.TestCase):
         participant = rows([-14, -12, -10, -13, -11])
         result = compare_word_features(baseline, participant)
         self.assertEqual(result["regions"], [])
+        self.assertEqual(result["rubric"]["overall_score"], 100.0)
+        self.assertEqual(result["rubric"]["status"], "development_default_uncalibrated")
 
     def test_local_energy_and_pause_outliers_have_grounded_explanations(self):
         baseline = rows([-20, -20, -20, -20, -20])
@@ -76,6 +78,27 @@ class FeatureTests(unittest.TestCase):
         self.assertIn("cannot justify", region["interpretation"])
         self.assertIn("no automatic correction", region["suggested_action"])
         self.assertIn("Abstention", region["action_basis"])
+
+    def test_rubric_is_deterministic_and_monotonic_for_stronger_deviation(self):
+        baseline = rows([-20] * 5)
+        mild = rows([-20, -20, -24, -20, -20])
+        severe = rows([-20, -20, -32, -20, -20])
+        mild_result = compare_word_features(baseline, mild, threshold=2.5)
+        severe_result = compare_word_features(baseline, severe, threshold=2.5)
+        self.assertGreater(mild_result["rubric"]["overall_score"],
+                           severe_result["rubric"]["overall_score"])
+        self.assertEqual(severe_result["rubric"],
+                         compare_word_features(baseline, severe, threshold=2.5)["rubric"])
+        self.assertAlmostEqual(sum(item["weight"] for item in
+                                   severe_result["rubric"]["components"].values()), 1.0)
+
+    def test_subset_rubric_renormalizes_available_component_weights(self):
+        baseline = rows([-20] * 5)
+        participant = rows([-20, -20, -32, -20, -20])
+        rubric = compare_word_features(
+            baseline, participant, active_features=["energy_db"])["rubric"]
+        self.assertEqual(set(rubric["components"]), {"energy"})
+        self.assertEqual(rubric["weight_normalization"], 0.25)
 
     def test_rejects_mismatched_transcript_and_bad_audio(self):
         baseline = rows([-20] * 5); participant = rows([-20] * 5)
