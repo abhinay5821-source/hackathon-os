@@ -3,6 +3,7 @@
 Model download is a separate setup action. Runtime never contacts model hosting.
 """
 import argparse
+import hashlib
 import json
 import re
 import time
@@ -74,6 +75,7 @@ def align_audio(audio_path, transcript, model_path):
                    "words": [{"word": word, "start_seconds": spans[0]["start_seconds"],
                               "end_seconds": spans[-1]["end_seconds"]} for word, spans in zip(text_words, words)],
                    "duration_seconds": duration,
+                   "audio_sha256": hashlib.sha256(audio_path.read_bytes()).hexdigest(),
                    "elapsed_seconds_including_model_load": round(time.perf_counter() - started, 3),
                    "device": "cpu", "model_path": str(model_path),
                    "claim": "Real-audio inference when run; word timing accuracy remains unvalidated until manual scoring."})
