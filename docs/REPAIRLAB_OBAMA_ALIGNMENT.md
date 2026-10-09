@@ -29,3 +29,9 @@ These are **two-model disagreement** values. They neither establish which model 
 ## Gate decision
 
 There are now two recording-specific public-domain, transcript-matched speaker candidates (Kennedy and Obama) with successful CPU forced-alignment execution. Source diversity has improved, but strict speaker/text holdouts and human word-boundary errors still require additional material and independent annotations. No audio or model weights are committed.
+
+## Prediction/reference binding
+
+The aligner now records the SHA-256 of the WAV bytes in every prediction. The boundary evaluator requires that hash and the declared duration to match the blind human reference before it will score any timestamps. This is an integrity gate, not new accuracy evidence.
+
+One 15-word prediction-blind manual annotation exists for the excerpt above. The exact corresponding Wav2Vec2 prediction artifact is not present in the current execution environment, and its local acoustic-model runtime is unavailable there. Therefore no single-annotator boundary-error result is reported yet; it must be regenerated from the checksum-matched WAV rather than reconstructed or inferred.
