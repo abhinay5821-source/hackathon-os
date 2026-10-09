@@ -16,6 +16,41 @@ MIN_SCALES = {"energy_db": 1.0, "f0_hz": 5.0, "spectral_centroid_hz": 50.0,
 FEATURE_UNITS = {"energy_db": "dB", "f0_hz": "Hz", "spectral_centroid_hz": "Hz",
                  "zero_crossing_rate": "ratio", "duration_seconds": "seconds",
                  "preceding_pause_seconds": "seconds"}
+RUBRIC_GROUPS = {"timing": ("duration_seconds", "preceding_pause_seconds"),
+                 "energy": ("energy_db",), "pitch": ("f0_hz",),
+                 "spectral": ("spectral_centroid_hz", "zero_crossing_rate")}
+RUBRIC_WEIGHTS = {"timing": 0.35, "energy": 0.25, "pitch": 0.25, "spectral": 0.15}
+
+
+def _rubric(normalized, active, threshold, word_count, severity_cap=2.0):
+    """Score declared acoustic dimensions without reading generator truth.
+
+    A finite feature incurs no penalty below threshold. Above threshold its
+    penalty is min((abs(delta) - threshold) / (severity_cap * threshold), 1).
+    Component scores are 100 * (1 - mean penalty). Available component weights
+    are renormalized, and the overall score is their weighted mean.
+    """
+    components = {}
+    for group, features in RUBRIC_GROUPS.items():
+        selected = [feature for feature in features if feature in active]
+        penalties = []
+        for feature in selected:
+            for delta in normalized[feature]:
+                if np.isfinite(delta):
+                    penalties.append(min(max(abs(float(delta)) - threshold, 0.0) /
+                                         (severity_cap * threshold), 1.0))
+        if penalties:
+            components[group] = {"score": round(100.0 * (1.0 - sum(penalties) / len(penalties)), 2),
+                                 "weight": RUBRIC_WEIGHTS[group],
+                                 "finite_measurements": len(penalties)}
+    weight_total = sum(item["weight"] for item in components.values())
+    overall = sum(item["score"] * item["weight"] for item in components.values()) / weight_total
+    return {"overall_score": round(overall, 2), "components": components,
+            "word_count": word_count, "threshold": float(threshold),
+            "severity_cap_multiple": float(severity_cap),
+            "weight_normalization": round(weight_total, 10),
+            "status": "development_default_uncalibrated",
+            "formula": "p=min(max(|delta|-threshold,0)/(severity_cap*threshold),1); component=100*(1-mean(p)); overall=weighted mean"}
 
 
 def _feedback(candidate_type, row, baseline_row, flagged):
@@ -197,6 +232,8 @@ def compare_word_features(baseline, participant, threshold=2.5, active_features=
                         "explanations": explanations, "evidence": evidence,
                         "interpretation": interpretation, "suggested_action": action,
                         "action_basis": action_basis})
+    rubric = _rubric(normalized, active, float(threshold), len(participant))
     return {"threshold": float(threshold), "active_features": list(active),
             "normalization": parameters, "regions": regions,
+            "rubric": rubric,
             "claim": "Transparent baseline; thresholds and delivery meaning require held-out calibration."}
