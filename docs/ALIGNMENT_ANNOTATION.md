@@ -19,9 +19,22 @@ python -m repairlab.annotation_ui blind-package
 
 Open `http://127.0.0.1:8766`, enter a non-personal annotator ID and the audio tool/browser version, then play, seek and mark each word's audible start and end. The browser downloads a completed JSON file locally. Use a fresh annotator ID and an unmodified package for the second pass; neither annotator should see model output or the other's labels.
 
+## Windows handoff and control check
+
+Extract the complete prediction-free package into a new folder. Start the UI with Python 3 (the packaged `START.cmd` tries the Windows `py -3` launcher first and then `python`). After the server starts, open `http://127.0.0.1:8766` in Chrome or Edge.
+
+Before setting any boundaries:
+
+1. Confirm that the audio plays.
+2. Select **Zoom to 3 seconds** and confirm that the displayed time range narrows.
+3. Select **+20 ms** and confirm that the current time increases slightly.
+4. Select **Play visible section** and confirm that playback stops near the displayed range end.
+
+Stop and report the failed control if any check does not work. Do not work around a broken control by estimating boundaries on the full-clip waveform. Passing this check establishes only that the annotation controls work in that browser; it is not evidence of alignment accuracy or annotation quality.
+
 1. Verify the recording checksum and independently checked transcript.
 2. Predeclare the word indexes, then give the same checksum, transcript and indexes to two annotators. Hide model and forced-alignment timestamps from both annotators.
-3. In an audio editor, listen at normal speed, then inspect the waveform/spectrogram. Mark the audible onset and offset for the predeclared sample spanning the beginning, middle and end of the clip. Do not move a label after viewing the model prediction.
+3. Listen at normal speed, then use the zoomed waveform, slower playback and 20-ms seeking to mark the audible onset and offset for the predeclared sample spanning the beginning, middle and end of the clip. Do not move a label after viewing the model prediction.
 4. Record ambiguous cases and the annotation tool/version. Use non-personal annotator IDs, `prediction_hidden: true`, `evidence_type: human_manual`, the recording SHA256, an ISO-8601 `annotated_at` value and one entry per word:
 
 ```json
