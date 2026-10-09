@@ -35,3 +35,12 @@ Feature-group ablations use `python -m repairlab.ablate_detector`; see `docs/REP
 Development-only threshold selection and locked held-out scoring use `python -m repairlab.calibrate_threshold`; see `docs/REPAIRLAB_CALIBRATION.md`.
 
 Run `python -m repairlab.verify_dataset dataset` again after evaluation. The before/after verifier output must match; otherwise discard the results and investigate the dataset mutation.
+
+After development-only calibration, freeze the rubric and score only the held-out partition with:
+
+```bash
+python -m repairlab.freeze_rubric calibration.json --output frozen-rubric.json
+python -m repairlab.score_held_out pairs.jsonl evaluation_truth.jsonl detector_manifest.jsonl frozen-rubric.json --output held-out-score.json
+```
+
+The held-out command verifies the rubric fingerprint, selects only manifest rows declared `held_out`, and persists both rubric and calibration SHA-256 values beside the detector report and baselines. It rejects a modified config or an empty held-out partition. Dataset verification before and after this command remains mandatory.
