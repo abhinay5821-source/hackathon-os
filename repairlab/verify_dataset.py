@@ -26,7 +26,7 @@ def verify_dataset(root):
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ValueError("build.json is not valid UTF-8 JSON") from exc
 
-    checked = {}
+    checked = {"build.json": _sha256(build_path)}
     for key, name in FILES.items():
         path = root / name
         if not path.is_file() or not isinstance(build.get(key), str):
