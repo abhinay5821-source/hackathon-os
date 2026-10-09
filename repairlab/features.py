@@ -13,6 +13,35 @@ FEATURES = ("energy_db", "f0_hz", "spectral_centroid_hz", "zero_crossing_rate",
 MIN_SCALES = {"energy_db": 1.0, "f0_hz": 5.0, "spectral_centroid_hz": 50.0,
               "zero_crossing_rate": 0.01, "duration_seconds": 0.02,
               "preceding_pause_seconds": 0.02}
+FEATURE_UNITS = {"energy_db": "dB", "f0_hz": "Hz", "spectral_centroid_hz": "Hz",
+                 "zero_crossing_rate": "ratio", "duration_seconds": "seconds",
+                 "preceding_pause_seconds": "seconds"}
+
+
+def _feedback(candidate_type, row, baseline_row, flagged):
+    """Separate measurement from conservative interpretation and rehearsal action."""
+    if candidate_type == "inserted_pause":
+        gap = row["preceding_pause_seconds"] - baseline_row["preceding_pause_seconds"]
+        return ("The pause before this word is longer than the transcript-matched reference.",
+                f"Replay {row['start_seconds']:.2f}–{row['end_seconds']:.2f}s and rehearse the "
+                f"transition with about {abs(gap):.2f}s less pause, then re-record and compare.",
+                "Measured participant-minus-reference pause difference; reference evidence, not a universal optimum.")
+    if candidate_type == "rushed":
+        gap = row["duration_seconds"] - baseline_row["duration_seconds"]
+        return ("This word is shorter than the transcript-matched reference.",
+                f"Replay {row['start_seconds']:.2f}–{row['end_seconds']:.2f}s and rehearse the word "
+                f"about {abs(gap):.2f}s longer, then re-record and compare.",
+                "Measured participant-minus-reference duration difference; reference evidence, not a universal optimum.")
+    if candidate_type == "quiet":
+        gap = row["energy_db"] - baseline_row["energy_db"]
+        return ("Local energy is lower than the transcript-matched reference after within-recording normalization.",
+                f"Replay {row['start_seconds']:.2f}–{row['end_seconds']:.2f}s and test a more projected "
+                f"delivery; the raw local energy difference is {gap:+.2f} dB.",
+                "Measured energy difference. Microphone distance and room acoustics can also cause it.")
+    features = ", ".join(sorted(flagged))
+    return (f"Acoustic deviation detected in {features}, but this baseline cannot justify a delivery flaw label.",
+            "Review the marked audio in context; no automatic correction is recommended.",
+            "Abstention: acoustic difference alone is not evidence of poor delivery.")
 
 
 def _waveform(samples, sample_rate):
@@ -154,11 +183,20 @@ def compare_word_features(baseline, participant, threshold=2.5, active_features=
         if flagged.get("energy_db", 0.0) < 0:
             candidates.append((abs(flagged["energy_db"]), "quiet"))
         candidate_type = max(candidates)[1] if candidates else "unclassified_acoustic_deviation"
+        evidence = [{"feature": feature, "unit": FEATURE_UNITS[feature],
+                     "baseline_value": baseline[index].get(feature),
+                     "participant_value": row.get(feature),
+                     "normalized_delta": delta, "threshold": float(threshold)}
+                    for feature, delta in sorted(flagged.items())]
+        interpretation, action, action_basis = _feedback(
+            candidate_type, row, baseline[index], flagged)
         regions.append({"word_index": index, "word": row["word"],
                         "start_seconds": row["start_seconds"], "end_seconds": row["end_seconds"],
                         "max_absolute_delta": max(abs(value) for value in flagged.values()),
                         "feature_deltas": flagged, "candidate_flaw_type": candidate_type,
-                        "explanations": explanations})
+                        "explanations": explanations, "evidence": evidence,
+                        "interpretation": interpretation, "suggested_action": action,
+                        "action_basis": action_basis})
     return {"threshold": float(threshold), "active_features": list(active),
             "normalization": parameters, "regions": regions,
             "claim": "Transparent baseline; thresholds and delivery meaning require held-out calibration."}
