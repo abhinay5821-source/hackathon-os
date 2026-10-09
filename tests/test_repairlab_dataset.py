@@ -73,6 +73,19 @@ class DatasetTests(unittest.TestCase):
         self.assertEqual(next((first / "audio").iterdir()).read_bytes(),
                          next((second / "audio").iterdir()).read_bytes())
 
+    def test_build_record_hashes_every_generated_audio_file(self):
+        output = self.root / "dataset"
+        build = build_dataset(output, self.sources, [
+            {"recording_id": "rec-a", "partition": "train", "corruption": "clean"},
+            {"recording_id": "rec-b", "partition": "held_out", "corruption": "clean"},
+        ])
+        audio = sorted((output / "audio").glob("*.wav"), key=lambda path: path.name)
+        self.assertEqual(list(build["audio_files_sha256"]), [path.name for path in audio])
+        import hashlib
+        self.assertEqual(build["audio_files_sha256"], {
+            path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in audio
+        })
+
     def test_rejects_source_partition_leakage(self):
         plans = [{"recording_id": "rec-a", "partition": "train", "corruption": "clean"},
                  {"recording_id": "rec-a", "partition": "held_out", "corruption": "clean"}]
