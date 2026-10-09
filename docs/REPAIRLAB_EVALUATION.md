@@ -1,6 +1,14 @@
 # Detector evaluation
 
-First generate predictions from a pair manifest that contains audio and alignment paths but no evaluation labels:
+Before prediction or scoring, verify the frozen dataset byte-for-byte:
+
+```bash
+python -m repairlab.verify_dataset dataset
+```
+
+The command validates the provenance and detector/truth manifests, every declared WAV hash, and the exact WAV filename set. Any mismatch, missing file or unexpected WAV blocks evaluation. Archive the successful JSON output with the final report.
+
+Then generate predictions from a pair manifest that contains audio and alignment paths but no evaluation labels:
 
 ```bash
 python -m repairlab.batch_detect pairs.jsonl --output predictions.jsonl --threshold 2.5
@@ -25,3 +33,5 @@ Matching greedily selects the highest remaining IoU and is deterministic. It is 
 Feature-group ablations use `python -m repairlab.ablate_detector`; see `docs/REPAIRLAB_ABLATIONS.md`.
 
 Development-only threshold selection and locked held-out scoring use `python -m repairlab.calibrate_threshold`; see `docs/REPAIRLAB_CALIBRATION.md`.
+
+Run `python -m repairlab.verify_dataset dataset` again after evaluation. The before/after verifier output must match; otherwise discard the results and investigate the dataset mutation.
