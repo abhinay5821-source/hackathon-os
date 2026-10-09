@@ -15,6 +15,8 @@ For each feature and each recording independently, values are normalized as:
 
 The participant delta for a word is `z_participant - z_baseline`. A region is returned when the absolute delta reaches the configured threshold; output includes participant timestamps, exact deltas, normalization parameters and a templated mathematical explanation. Independent per-recording normalization makes a constant whole-recording gain shift cancel in the tested baseline.
 
+Each returned region now separates four things: measured evidence (raw baseline and participant values, units, normalized delta and threshold), a conservative interpretation, a suggested rehearsal action, and the action's evidentiary basis. Pause, duration and local-energy candidates can produce quantified reference-based actions. Other acoustic deviations explicitly abstain from prescribing a correction. Suggested amounts describe the measured gap to this reference performance; they are not universal delivery targets.
+
 ## Claim limits
 
 The current threshold of 2.5 is a development default, not a validated scoring rubric. Autocorrelation pitch is a transparent CPU baseline and can produce octave errors, especially for noisy, breathy or multi-pitch audio. Spectral centroid and zero-crossing rate are proxies, not direct measures of vocal clarity. Word spans inherit all forced-alignment errors. Short clips, flat feature sequences and missing pitch values reduce reliability.
