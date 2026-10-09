@@ -27,6 +27,14 @@ Each component is `100 * (1 - mean(p))`. The overall score is the weighted mean 
 
 This score is a reproducible engineering rubric, not a validated judge score. The threshold must be selected on development sources only using `repairlab.calibrate_threshold`, then locked before held-out scoring. Weights and severity cap must also be frozen before held-out execution. Do not tune them using held-out labels or describe 100 as perfect human delivery.
 
+Freeze the selected threshold and rubric constants with:
+
+```sh
+python -m repairlab.freeze_rubric calibration.json --output frozen-rubric.json
+```
+
+The output binds the complete calibration report by SHA-256 and fingerprints the canonical configuration. `verify_rubric_config` rejects any later modification. This prevents silent post-hoc tuning, but does not by itself prove the calibration data, weights or scoring construct are valid.
+
 ## Claim limits
 
 The current threshold of 2.5 is a development default, not a validated scoring rubric. Autocorrelation pitch is a transparent CPU baseline and can produce octave errors, especially for noisy, breathy or multi-pitch audio. Spectral centroid and zero-crossing rate are proxies, not direct measures of vocal clarity. Word spans inherit all forced-alignment errors. Short clips, flat feature sequences and missing pitch values reduce reliability.
