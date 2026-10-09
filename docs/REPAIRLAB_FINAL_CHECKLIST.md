@@ -15,7 +15,7 @@ Status meanings: **done** = evidence exists; **blocked** = external/manual evide
 | Upload dashboard and overlays | done in prototype | HTTP tests exist; manual browser/judge-usability pass required |
 | Held-out detector evaluation | open | Evaluator, baselines, calibration and ablations exist; final dataset/results absent |
 | Public source and dataset link | blocked | Cannot publish until source rights pass |
-| Fresh-clone core reproduction | open | Earlier clean run at `b2e0afb` passed 60/60; restored `c79bcb4` checkout passed 81/81 outside a fresh venv; rerun after package freeze |
+| Fresh-clone core reproduction | done for current head | New clone and venv at `bb2e6d9`, pinned NumPy, 81/81 tests; rerun after package freeze |
 | Technical document, maximum 6 pages | open | Draft exists; render, measure and replace all `PENDING` fields |
 | Running-project video, 3–10 minutes | blocked | Human recording/upload required after final build |
 | Devpost registration/team/terms | blocked | Human-controlled action only |
