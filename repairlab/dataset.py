@@ -219,6 +219,10 @@ def build_dataset(output_dir, sources, plans):
     build = {"format": FORMAT_VERSION, "entries": len(detector_records),
              "source_provenance_sha256": hashlib.sha256((root / "source_provenance.json").read_bytes()).hexdigest(),
              "detector_manifest_sha256": hashlib.sha256((root / "detector_manifest.jsonl").read_bytes()).hexdigest(),
-             "evaluation_truth_sha256": hashlib.sha256((root / "evaluation_truth.jsonl").read_bytes()).hexdigest()}
+             "evaluation_truth_sha256": hashlib.sha256((root / "evaluation_truth.jsonl").read_bytes()).hexdigest(),
+             "audio_files_sha256": {
+                 path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                 for path in sorted(audio_dir.glob("*.wav"), key=lambda item: item.name)
+             }}
     (root / "build.json").write_text(json.dumps(build, indent=2, sort_keys=True) + "\n")
     return build
