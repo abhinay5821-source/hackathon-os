@@ -29,7 +29,27 @@ def _percentile(values, percentile):
     return ordered[lower] * (1 - weight) + ordered[upper] * weight
 
 
-def evaluate_alignment(prediction, reference):
+def _verify_blind_manifest(reference, manifest):
+    if manifest.get("format") != "repairlab-blind-annotation-v1":
+        raise ValueError("Unsupported blind annotation manifest format")
+    if manifest.get("prediction_included") is not False:
+        raise ValueError("Blind annotation manifest must declare prediction_included false")
+    if manifest.get("audio_sha256") != reference.get("audio_sha256"):
+        raise ValueError("Manifest and reference audio_sha256 do not match")
+    manifest_duration = _finite_number(manifest.get("duration_seconds"), "manifest duration_seconds")
+    reference_duration = _finite_number(reference.get("duration_seconds"), "reference duration_seconds")
+    if not math.isclose(manifest_duration, reference_duration, rel_tol=0, abs_tol=1e-6):
+        raise ValueError("Manifest and reference duration_seconds do not match")
+    selected = manifest.get("selected_words")
+    if not isinstance(selected, list) or not selected:
+        raise ValueError("Manifest selected_words must be nonempty")
+    planned = [(item.get("word_index"), item.get("word")) for item in selected]
+    labelled = [(item.get("word_index"), item.get("word")) for item in reference.get("words", [])]
+    if planned != labelled:
+        raise ValueError("Reference words do not exactly match the predeclared manifest selection")
+
+
+def evaluate_alignment(prediction, reference, manifest=None):
     """Return boundary-error metrics for a manually labelled word subset."""
     if reference.get("evidence_type") != "human_manual":
         raise ValueError("Reference evidence_type must be human_manual")
@@ -44,6 +64,8 @@ def evaluate_alignment(prediction, reference):
         raise ValueError("Prediction audio_sha256 must be 64 lowercase hexadecimal characters")
     if prediction_hash != reference_hash:
         raise ValueError("Prediction and reference audio_sha256 do not match")
+    if manifest is not None:
+        _verify_blind_manifest(reference, manifest)
     predicted = prediction.get("words")
     labelled = reference.get("words")
     if not isinstance(predicted, list) or not predicted or not isinstance(labelled, list) or not labelled:
@@ -96,8 +118,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("prediction", type=Path)
     parser.add_argument("reference", type=Path)
+    parser.add_argument("--manifest", type=Path,
+                        help="Prediction-free annotation manifest used to predeclare the scored words")
     args = parser.parse_args()
-    result = evaluate_alignment(json.loads(args.prediction.read_text()), json.loads(args.reference.read_text()))
+    manifest = json.loads(args.manifest.read_text()) if args.manifest else None
+    result = evaluate_alignment(json.loads(args.prediction.read_text()),
+                                json.loads(args.reference.read_text()), manifest)
     print(json.dumps(result, indent=2))
 
 
