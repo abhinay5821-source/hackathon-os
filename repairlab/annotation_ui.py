@@ -11,12 +11,12 @@ HTML = r'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name
 :root{color-scheme:dark;--bg:#0b1020;--card:#151c31;--ink:#f4f6fb;--muted:#aab4ce;--accent:#62d6a7}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,sans-serif}main{max-width:960px;margin:auto;padding:24px}.card{background:var(--card);padding:18px;border-radius:14px;margin:14px 0}audio,canvas{width:100%}canvas{height:150px;background:#0e1528;border:1px solid #34405d;border-radius:8px;cursor:crosshair}input,button{font:inherit;padding:8px;border-radius:8px}input{background:#0e1528;color:var(--ink);border:1px solid #34405d}button{border:0;font-weight:700;cursor:pointer}.mark{background:#e9efff;color:#11182b}.save{background:var(--accent);color:#09251b}.muted{color:var(--muted)}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #303a54;text-align:left}.done{color:var(--accent)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:650px){.grid{grid-template-columns:1fr}}</style></head><body><main>
 <h1>RepairLab blind annotation</h1><p class="muted">Model predictions are not included. Annotate only what you hear and see in the waveform of your audio player.</p>
 <section class="card"><audio id="audio" controls src="/audio.wav" preload="metadata"></audio><p class="muted">Click the waveform to seek. Use “Zoom to 3 seconds” and fine seeking to place each boundary.</p><canvas id="wave" width="900" height="150" aria-label="Audio waveform; click to seek"></canvas><p>Current time: <strong id="time">0.000</strong>s</p><div class="grid"><label>Annotator ID<input id="annotator" placeholder="ann-a"></label><label>Tool/version<input id="method" placeholder="RepairLab browser waveform v1"></label></div></section>
-<section class="card"><table><thead><tr><th>#</th><th>Word</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></section>
+<section class="card"><table><thead><tr><th>#</th><th>Transcript context</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></section>
 <button class="save" id="download">Download completed JSON</button> <button class="mark" id="reset">Clear saved progress</button><p id="message" class="muted"></p>
 <script>const manifest=__MANIFEST__;const audio=document.getElementById('audio'),wave=document.getElementById('wave'),storageKey='repairlab-annotation-'+manifest.audio_sha256,values=new Map();let peaks=[];const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
 try{const saved=JSON.parse(localStorage.getItem(storageKey)||'[]');for(const [i,v] of saved)if(Number.isInteger(i)&&v&&(Number.isFinite(v.start_seconds)||Number.isFinite(v.end_seconds)))values.set(i,v)}catch(_){localStorage.removeItem(storageKey)}
 const saveProgress=()=>localStorage.setItem(storageKey,JSON.stringify([...values]));
-function draw(){document.getElementById('rows').innerHTML=manifest.selected_words.map(w=>{const v=values.get(w.word_index)||{};return `<tr><td>${w.word_index}</td><td>${esc(w.word)}</td><td><button class="mark" data-kind="start" data-index="${w.word_index}">${v.start_seconds?.toFixed(3)??'Set start'}</button></td><td><button class="mark" data-kind="end" data-index="${w.word_index}">${v.end_seconds?.toFixed(3)??'Set end'}</button></td><td class="${v.start_seconds!==undefined&&v.end_seconds!==undefined&&v.start_seconds<v.end_seconds?'done':''}">${v.start_seconds!==undefined&&v.end_seconds!==undefined&&v.start_seconds<v.end_seconds?'Ready':'Incomplete'}</td></tr>`}).join('')}
+function draw(){document.getElementById('rows').innerHTML=manifest.selected_words.map(w=>{const v=values.get(w.word_index)||{},context=w.context.map((x,i)=>i===w.context_target_offset?'<strong>['+esc(x)+']</strong>':esc(x)).join(' ');return `<tr><td>${w.word_index}</td><td>${context}</td><td><button class="mark" data-kind="start" data-index="${w.word_index}">${v.start_seconds?.toFixed(3)??'Set start'}</button></td><td><button class="mark" data-kind="end" data-index="${w.word_index}">${v.end_seconds?.toFixed(3)??'Set end'}</button></td><td class="${v.start_seconds!==undefined&&v.end_seconds!==undefined&&v.start_seconds<v.end_seconds?'done':''}">${v.start_seconds!==undefined&&v.end_seconds!==undefined&&v.start_seconds<v.end_seconds?'Ready':'Incomplete'}</td></tr>`}).join('')}
 let samples=null,sampleRate=16000,viewStart=0,viewSpan=manifest.duration_seconds,stopAt=null;
 const controls=document.createElement('div');controls.innerHTML='<p><button id="zoom">Zoom to 3 seconds</button> <button id="overview">Full clip</button> <button id="back">Previous section</button> <button id="forward">Next section</button></p><p><button id="minus">−20 ms</button> <button id="plus">+20 ms</button> <button id="section">Play visible section</button> <label>Speed <select id="speed"><option value="1">1×</option><option value="0.75">0.75×</option><option value="0.5">0.5×</option></select></label></p><p id="range"></p>';wave.after(controls);
 function clampView(){viewStart=Math.max(0,Math.min(manifest.duration_seconds-viewSpan,viewStart))}
@@ -31,15 +31,18 @@ document.getElementById('download').addEventListener('click',()=>{const id=docum
 
 def load_package(package):
     root = Path(package).resolve()
-    manifest_path, audio_path = root / "manifest.json", root / "audio.wav"
-    if not manifest_path.is_file() or not audio_path.is_file():
-        raise ValueError("Package needs manifest.json and audio.wav")
+    manifest_path, audio_path, transcript_path = root / "manifest.json", root / "audio.wav", root / "transcript.txt"
+    if not manifest_path.is_file() or not audio_path.is_file() or not transcript_path.is_file():
+        raise ValueError("Package needs manifest.json, audio.wav and transcript.txt")
     manifest = json.loads(manifest_path.read_text())
     if manifest.get("format") != "repairlab-blind-annotation-v1" or manifest.get("prediction_included") is not False:
         raise ValueError("Require a prediction-free RepairLab annotation package")
     words = manifest.get("selected_words")
     if not isinstance(words, list) or not words:
         raise ValueError("Package needs selected_words")
+    transcript_words = transcript_path.read_text().split()
+    if len(transcript_words) != manifest.get("transcript_word_count"):
+        raise ValueError("transcript.txt word count does not match manifest")
     indexes = set()
     for word in words:
         if not isinstance(word, dict):
@@ -51,6 +54,11 @@ def load_package(package):
             raise ValueError("selected_words contains a duplicate word_index")
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Each selected word needs non-empty word text")
+        if index >= len(transcript_words) or transcript_words[index] != text:
+            raise ValueError("Selected word does not match transcript.txt at word_index")
+        begin, end = max(0, index - 3), min(len(transcript_words), index + 4)
+        word["context"] = transcript_words[begin:end]
+        word["context_target_offset"] = index - begin
         indexes.add(index)
     duration = manifest.get("duration_seconds")
     if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not math.isfinite(duration) or duration <= 0:
