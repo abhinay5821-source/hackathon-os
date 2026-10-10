@@ -11,6 +11,9 @@ from repairlab.freeze_rubric import freeze_rubric
 class SubmissionGateTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.root = Path(self.temp.name)
+        mvhd_payload = b"\x00\x00\x00\x00" + b"\x00" * 8 + (1000).to_bytes(4, "big") + (300000).to_bytes(4, "big")
+        mvhd = (8 + len(mvhd_payload)).to_bytes(4, "big") + b"mvhd" + mvhd_payload
+        video = (8 + len(mvhd)).to_bytes(4, "big") + b"moov" + mvhd
         rubric = freeze_rubric({"schema": "repairlab-threshold-calibration-v1",
                                 "selection_partition": "development", "chosen_threshold": 0.25})
         alignment = {"schema": "repairlab-human-alignment-score-v1", "labelled_words": 15,
@@ -31,6 +34,7 @@ class SubmissionGateTests(unittest.TestCase):
             "held_out_report": ("held.json", json.dumps(held).encode()),
             "dataset_verification": ("dataset.json", json.dumps({"verified": True, "files": {"build.json": "a"}}).encode()),
             "rubric_config": ("rubric.json", json.dumps(rubric).encode()),
+            "video": ("demo.mp4", video),
         }
         artifacts = {}
         for name, (filename, data) in records.items():
@@ -48,8 +52,9 @@ class SubmissionGateTests(unittest.TestCase):
     def test_accepts_complete_hashed_bundle(self):
         result = validate_submission(self.root, self.manifest)
         self.assertTrue(result["evidence_bundle_valid"])
-        self.assertEqual(result["checked_artifacts"], 5)
+        self.assertEqual(result["checked_artifacts"], 6)
         self.assertEqual(result["measured_pdf_pages"], 2)
+        self.assertEqual(result["measured_video_duration_seconds"], 300)
 
     def _replace_json(self, artifact, value):
         record = self.manifest["artifacts"][artifact]
@@ -95,6 +100,18 @@ class SubmissionGateTests(unittest.TestCase):
         (self.root / "report.pdf").write_bytes(data)
         self.manifest["artifacts"]["technical_document"]["sha256"] = hashlib.sha256(data).hexdigest()
         with self.assertRaisesRegex(ValueError, "structurally recognizable"):
+            validate_submission(self.root, self.manifest)
+
+    def test_rejects_declared_duration_that_differs_from_video(self):
+        self.manifest["video_duration_seconds"] = 301
+        with self.assertRaisesRegex(ValueError, "does not match measured"):
+            validate_submission(self.root, self.manifest)
+
+    def test_rejects_video_without_duration_metadata(self):
+        data = b"\x00\x00\x00\x08moov"
+        (self.root / "demo.mp4").write_bytes(data)
+        self.manifest["artifacts"]["video"]["sha256"] = hashlib.sha256(data).hexdigest()
+        with self.assertRaisesRegex(ValueError, "duration metadata"):
             validate_submission(self.root, self.manifest)
 
     def test_rejects_tampering_and_nonpublic_url(self):
