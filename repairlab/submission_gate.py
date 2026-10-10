@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import re
+import struct
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -43,6 +44,49 @@ def _pdf_page_count(path):
     if pages < 1:
         raise ValueError("technical_document has no explicit PDF page objects")
     return pages
+
+
+def _mp4_boxes(data, start, end):
+    offset = start
+    while offset + 8 <= end:
+        size, kind = struct.unpack_from(">I4s", data, offset)
+        header = 8
+        if size == 1:
+            if offset + 16 > end:
+                raise ValueError("video artifact has a truncated MP4 box")
+            size = struct.unpack_from(">Q", data, offset + 8)[0]
+            header = 16
+        elif size == 0:
+            size = end - offset
+        if size < header or offset + size > end:
+            raise ValueError("video artifact has an invalid MP4 box")
+        yield kind, offset + header, offset + size
+        offset += size
+    if offset != end:
+        raise ValueError("video artifact has trailing malformed MP4 bytes")
+
+
+def _mp4_duration(path):
+    data = path.read_bytes()
+    moov = next(((start, end) for kind, start, end in _mp4_boxes(data, 0, len(data))
+                 if kind == b"moov"), None)
+    if moov is None:
+        raise ValueError("video artifact lacks an MP4 movie box")
+    mvhd = next(((start, end) for kind, start, end in _mp4_boxes(data, *moov)
+                 if kind == b"mvhd"), None)
+    if mvhd is None:
+        raise ValueError("video artifact lacks MP4 duration metadata")
+    start, end = mvhd
+    version = data[start] if start < end else -1
+    if version == 0 and end - start >= 20:
+        timescale, duration = struct.unpack_from(">II", data, start + 12)
+    elif version == 1 and end - start >= 32:
+        timescale, duration = struct.unpack_from(">IQ", data, start + 20)
+    else:
+        raise ValueError("video artifact has unsupported MP4 duration metadata")
+    if timescale == 0 or duration == 0:
+        raise ValueError("video artifact duration must be positive")
+    return duration / timescale
 
 
 def _finite_number(value, name, minimum=0.0, maximum=None):
@@ -117,11 +161,17 @@ def validate_submission(root, manifest):
     held_path = _artifact(root, artifacts.get("held_out_report"), "held_out_report")
     dataset_path = _artifact(root, artifacts.get("dataset_verification"), "dataset_verification")
     rubric_path = _artifact(root, artifacts.get("rubric_config"), "rubric_config")
+    video_path = _artifact(root, artifacts.get("video"), "video")
     if document.suffix.lower() != ".pdf":
         raise ValueError("technical_document must be a PDF")
     measured_pages = _pdf_page_count(document)
     if measured_pages != pages:
         raise ValueError("technical_document_pages does not match measured PDF pages")
+    if video_path.suffix.lower() not in {".mp4", ".mov"}:
+        raise ValueError("video artifact must be MP4 or MOV")
+    measured_duration = _mp4_duration(video_path)
+    if not math.isclose(measured_duration, duration, abs_tol=0.05):
+        raise ValueError("video_duration_seconds does not match measured video duration")
     alignment = json.loads(alignment_path.read_text())
     held = json.loads(held_path.read_text())
     dataset = json.loads(dataset_path.read_text())
@@ -131,9 +181,10 @@ def validate_submission(root, manifest):
     _validate_held(held, rubric)
     if dataset.get("verified") is not True or not isinstance(dataset.get("files"), dict) or not dataset["files"]:
         raise ValueError("dataset_verification is not a successful verification report")
-    return {"evidence_bundle_valid": True, "schema": manifest["schema"], "checked_artifacts": 5,
+    return {"evidence_bundle_valid": True, "schema": manifest["schema"], "checked_artifacts": 6,
             "measured_pdf_pages": measured_pages,
-            "limitations": ["Video duration remains a manifest declaration and must be checked against the rendered media.",
+            "measured_video_duration_seconds": measured_duration,
+            "limitations": ["Video duration measurement reads MP4/MOV movie-header metadata; final playback and subtitle review remain human checks.",
                             "PDF page measurement supports files with explicit page objects and fails closed on unsupported structures.",
                             "This gate does not prove listener benefit, URL reachability, eligibility, or submission acceptance."]}
 
