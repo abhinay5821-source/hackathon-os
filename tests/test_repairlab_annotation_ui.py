@@ -12,10 +12,12 @@ from repairlab.annotation_ui import handler_for, load_package
 
 def package(root):
     root.mkdir(); audio = b"RIFF fake fixture"; (root / "audio.wav").write_bytes(audio)
+    (root / "transcript.txt").write_text("WE FLY MOON")
     (root / "manifest.json").write_text(json.dumps({
         "format": "repairlab-blind-annotation-v1", "clip_id": "clip-a",
         "audio_sha256": hashlib.sha256(audio).hexdigest(), "prediction_included": False,
         "duration_seconds": 2.0,
+        "transcript_word_count": 3,
         "selected_words": [{"word_index": 0, "word": "WE"}, {"word_index": 2, "word": "MOON"}],
     }))
 
@@ -25,7 +27,7 @@ class AnnotationUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "package"; package(root)
             page, audio = load_package(root)
-            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Zoom to 3 seconds", b"decodeAudioData", b"click to seek", b"Clear saved progress", b"localStorage"):
+            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Zoom to 3 seconds", b"decodeAudioData", b"click to seek", b"Clear saved progress", b"localStorage", b"Transcript context", b"context_target_offset"):
                 self.assertIn(marker, page)
             self.assertNotIn(b"start_seconds\":", page)
             self.assertEqual(audio, b"RIFF fake fixture")
@@ -74,6 +76,13 @@ class AnnotationUiTests(unittest.TestCase):
                 (root / "manifest.json").write_text(json.dumps(data))
                 with self.assertRaisesRegex(ValueError, message):
                     load_package(root)
+
+    def test_rejects_transcript_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "package"; package(root)
+            (root / "transcript.txt").write_text("WE FLY SUN")
+            with self.assertRaisesRegex(ValueError, "does not match transcript"):
+                load_package(root)
 
     def test_http_serves_page_audio_health_and_404(self):
         with tempfile.TemporaryDirectory() as tmp:
