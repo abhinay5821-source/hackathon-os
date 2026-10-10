@@ -26,7 +26,7 @@ class SubmissionGateTests(unittest.TestCase):
                 "calibration_sha256": rubric["calibration_sha256"],
                 "derivative_ids": ["held-1"], "report": evaluation}
         records = {
-            "technical_document": ("report.pdf", b"%PDF fixture"),
+            "technical_document": ("report.pdf", b"%PDF-1.4\n1 0 obj <</Type /Page>> endobj\n2 0 obj <</Type /Page>> endobj\n%%EOF"),
             "alignment_report": ("alignment.json", json.dumps(alignment).encode()),
             "held_out_report": ("held.json", json.dumps(held).encode()),
             "dataset_verification": ("dataset.json", json.dumps({"verified": True, "files": {"build.json": "a"}}).encode()),
@@ -39,7 +39,7 @@ class SubmissionGateTests(unittest.TestCase):
         self.manifest = {"schema": "repairlab-track-c-submission-v1",
                          "public_dataset_url": "https://example.org/repairlab-data",
                          "video_url": "https://example.org/repairlab-demo",
-                         "technical_document_pages": 6, "video_duration_seconds": 300,
+                         "technical_document_pages": 2, "video_duration_seconds": 300,
                          "video_english_or_subtitled": True, "artifacts": artifacts}
 
     def tearDown(self):
@@ -49,6 +49,7 @@ class SubmissionGateTests(unittest.TestCase):
         result = validate_submission(self.root, self.manifest)
         self.assertTrue(result["evidence_bundle_valid"])
         self.assertEqual(result["checked_artifacts"], 5)
+        self.assertEqual(result["measured_pdf_pages"], 2)
 
     def _replace_json(self, artifact, value):
         record = self.manifest["artifacts"][artifact]
@@ -79,9 +80,21 @@ class SubmissionGateTests(unittest.TestCase):
         self.manifest["technical_document_pages"] = 7
         with self.assertRaisesRegex(ValueError, "between 1 and 6"):
             validate_submission(self.root, self.manifest)
-        self.manifest["technical_document_pages"] = 6
+        self.manifest["technical_document_pages"] = 2
         self.manifest["video_duration_seconds"] = 120
         with self.assertRaisesRegex(ValueError, "between 180 and 600"):
+            validate_submission(self.root, self.manifest)
+
+    def test_rejects_declared_page_count_that_differs_from_pdf(self):
+        self.manifest["technical_document_pages"] = 1
+        with self.assertRaisesRegex(ValueError, "does not match measured"):
+            validate_submission(self.root, self.manifest)
+
+    def test_rejects_placeholder_pdf(self):
+        data = b"%PDF fixture"
+        (self.root / "report.pdf").write_bytes(data)
+        self.manifest["artifacts"]["technical_document"]["sha256"] = hashlib.sha256(data).hexdigest()
+        with self.assertRaisesRegex(ValueError, "structurally recognizable"):
             validate_submission(self.root, self.manifest)
 
     def test_rejects_tampering_and_nonpublic_url(self):
