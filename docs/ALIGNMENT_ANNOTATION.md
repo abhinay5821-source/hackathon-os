@@ -60,7 +60,10 @@ python -m repairlab.audit_annotations annotator-a.json annotator-b.json --tolera
 Any queued word requires explicit review. Do not average boundaries silently. Preserve the two original files and document adjudicated changes separately. After the audit, run model scoring against the declared reference:
 
 ```sh
-python -m repairlab.evaluate_alignment alignment.json manual-boundaries.json
+python -m repairlab.evaluate_alignment alignment.json manual-boundaries.json \
+  --manifest blind-package/manifest.json
 ```
+
+Supplying the original prediction-free manifest is required for reportable project evidence. The evaluator then verifies that the audio checksum and duration match and that the scored words are exactly the predeclared selection, in the original order. Omitting it remains supported only for lower-level diagnostics.
 
 Report inter-annotator disagreement and its adjudication queue separately from model error. Then report labelled-word coverage, start/end MAE, boundary median/p95/max absolute error and the fraction within 100 ms. Do not generalize one clip's result to other speakers, acoustic conditions or the later delivery detector.
