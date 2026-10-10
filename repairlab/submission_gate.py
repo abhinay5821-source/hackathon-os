@@ -1,0 +1,201 @@
+"""Fail closed unless a RepairLab Track C submission evidence bundle is complete."""
+import argparse
+import hashlib
+import json
+import math
+import re
+import struct
+from pathlib import Path
+from urllib.parse import urlparse
+
+from repairlab.freeze_rubric import verify_rubric_config
+
+
+def _sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _public_https(value, name):
+    if not isinstance(value, str):
+        raise ValueError(f"{name} must be a public HTTPS URL")
+    parsed = urlparse(value)
+    if parsed.scheme != "https" or not parsed.netloc or parsed.hostname in {"localhost", "127.0.0.1"}:
+        raise ValueError(f"{name} must be a public HTTPS URL")
+
+
+def _artifact(root, record, name):
+    if not isinstance(record, dict) or not isinstance(record.get("path"), str):
+        raise ValueError(f"{name} artifact is required")
+    path = (root / record["path"]).resolve()
+    if root.resolve() not in path.parents or not path.is_file():
+        raise ValueError(f"{name} artifact path is missing or escapes the bundle")
+    digest = record.get("sha256")
+    if not isinstance(digest, str) or digest != _sha(path):
+        raise ValueError(f"{name} artifact SHA-256 mismatch")
+    return path
+
+
+def _pdf_page_count(path):
+    """Count explicit PDF page objects; fail closed on unsupported/empty files."""
+    data = path.read_bytes()
+    if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
+        raise ValueError("technical_document is not a structurally recognizable PDF")
+    pages = len(re.findall(rb"/Type\s*/Page\b", data))
+    if pages < 1:
+        raise ValueError("technical_document has no explicit PDF page objects")
+    return pages
+
+
+def _mp4_boxes(data, start, end):
+    offset = start
+    while offset + 8 <= end:
+        size, kind = struct.unpack_from(">I4s", data, offset)
+        header = 8
+        if size == 1:
+            if offset + 16 > end:
+                raise ValueError("video artifact has a truncated MP4 box")
+            size = struct.unpack_from(">Q", data, offset + 8)[0]
+            header = 16
+        elif size == 0:
+            size = end - offset
+        if size < header or offset + size > end:
+            raise ValueError("video artifact has an invalid MP4 box")
+        yield kind, offset + header, offset + size
+        offset += size
+    if offset != end:
+        raise ValueError("video artifact has trailing malformed MP4 bytes")
+
+
+def _mp4_duration(path):
+    data = path.read_bytes()
+    moov = next(((start, end) for kind, start, end in _mp4_boxes(data, 0, len(data))
+                 if kind == b"moov"), None)
+    if moov is None:
+        raise ValueError("video artifact lacks an MP4 movie box")
+    mvhd = next(((start, end) for kind, start, end in _mp4_boxes(data, *moov)
+                 if kind == b"mvhd"), None)
+    if mvhd is None:
+        raise ValueError("video artifact lacks MP4 duration metadata")
+    start, end = mvhd
+    version = data[start] if start < end else -1
+    if version == 0 and end - start >= 20:
+        timescale, duration = struct.unpack_from(">II", data, start + 12)
+    elif version == 1 and end - start >= 32:
+        timescale, duration = struct.unpack_from(">IQ", data, start + 20)
+    else:
+        raise ValueError("video artifact has unsupported MP4 duration metadata")
+    if timescale == 0 or duration == 0:
+        raise ValueError("video artifact duration must be positive")
+    return duration / timescale
+
+
+def _finite_number(value, name, minimum=0.0, maximum=None):
+    if (isinstance(value, bool) or not isinstance(value, (int, float)) or
+            not math.isfinite(value) or value < minimum or
+            (maximum is not None and value > maximum)):
+        raise ValueError(f"{name} must be a finite number in the required range")
+
+
+def _validate_alignment(report):
+    if report.get("schema") != "repairlab-human-alignment-score-v1":
+        raise ValueError("alignment_report lacks human alignment score schema")
+    labelled = report.get("labelled_words")
+    if isinstance(labelled, bool) or not isinstance(labelled, int) or labelled <= 0:
+        raise ValueError("alignment_report requires labelled_words > 0")
+    _finite_number(report.get("labelled_fraction"), "labelled_fraction", 0.0, 1.0)
+    if report["labelled_fraction"] <= 0:
+        raise ValueError("labelled_fraction must be positive")
+    for name in ("start_mae_seconds", "end_mae_seconds",
+                 "boundary_median_absolute_error_seconds",
+                 "boundary_p95_absolute_error_seconds",
+                 "boundary_max_absolute_error_seconds"):
+        _finite_number(report.get(name), name)
+    _finite_number(report.get("boundaries_within_100ms_fraction"),
+                   "boundaries_within_100ms_fraction", 0.0, 1.0)
+    if not (report["boundary_median_absolute_error_seconds"] <=
+            report["boundary_p95_absolute_error_seconds"] <=
+            report["boundary_max_absolute_error_seconds"]):
+        raise ValueError("alignment_report boundary error quantiles are inconsistent")
+
+
+def _validate_held(report, rubric):
+    if report.get("schema") != "repairlab-frozen-held-out-score-v1" or report.get("partition") != "held_out":
+        raise ValueError("held_out_report is not a frozen held-out score")
+    identifiers = report.get("derivative_ids")
+    if (not isinstance(identifiers, list) or not identifiers or
+            any(not isinstance(value, str) or not value for value in identifiers)):
+        raise ValueError("held_out_report requires nonempty derivative_ids")
+    if report.get("rubric_config_sha256") != rubric["config_sha256"] or report.get("calibration_sha256") != rubric["calibration_sha256"]:
+        raise ValueError("held_out_report fingerprint does not match frozen rubric")
+    evaluation = report.get("report")
+    if (not isinstance(evaluation, dict) or
+            evaluation.get("schema") != "repairlab-detector-evaluation-v1" or
+            not isinstance(evaluation.get("system"), dict) or
+            not isinstance(evaluation.get("baselines"), dict) or
+            not evaluation["baselines"]):
+        raise ValueError("held_out_report requires nonempty detector and baseline measurements")
+
+
+def validate_submission(root, manifest):
+    """Validate artifact presence, hashes, formats, and Track C packaging limits."""
+    root = Path(root)
+    if manifest.get("schema") != "repairlab-track-c-submission-v1":
+        raise ValueError("Unsupported submission manifest schema")
+    _public_https(manifest.get("public_dataset_url"), "public_dataset_url")
+    _public_https(manifest.get("video_url"), "video_url")
+    pages = manifest.get("technical_document_pages")
+    if isinstance(pages, bool) or not isinstance(pages, int) or not 1 <= pages <= 6:
+        raise ValueError("technical_document_pages must be between 1 and 6")
+    duration = manifest.get("video_duration_seconds")
+    if (isinstance(duration, bool) or not isinstance(duration, (int, float)) or
+            not math.isfinite(duration) or not 180 <= duration <= 600):
+        raise ValueError("video_duration_seconds must be between 180 and 600")
+    if manifest.get("video_english_or_subtitled") is not True:
+        raise ValueError("Video must be English or subtitled")
+
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise ValueError("artifacts object is required")
+    document = _artifact(root, artifacts.get("technical_document"), "technical_document")
+    alignment_path = _artifact(root, artifacts.get("alignment_report"), "alignment_report")
+    held_path = _artifact(root, artifacts.get("held_out_report"), "held_out_report")
+    dataset_path = _artifact(root, artifacts.get("dataset_verification"), "dataset_verification")
+    rubric_path = _artifact(root, artifacts.get("rubric_config"), "rubric_config")
+    video_path = _artifact(root, artifacts.get("video"), "video")
+    if document.suffix.lower() != ".pdf":
+        raise ValueError("technical_document must be a PDF")
+    measured_pages = _pdf_page_count(document)
+    if measured_pages != pages:
+        raise ValueError("technical_document_pages does not match measured PDF pages")
+    if video_path.suffix.lower() not in {".mp4", ".mov"}:
+        raise ValueError("video artifact must be MP4 or MOV")
+    measured_duration = _mp4_duration(video_path)
+    if not math.isclose(measured_duration, duration, abs_tol=0.05):
+        raise ValueError("video_duration_seconds does not match measured video duration")
+    alignment = json.loads(alignment_path.read_text())
+    held = json.loads(held_path.read_text())
+    dataset = json.loads(dataset_path.read_text())
+    rubric = json.loads(rubric_path.read_text())
+    verify_rubric_config(rubric)
+    _validate_alignment(alignment)
+    _validate_held(held, rubric)
+    if dataset.get("verified") is not True or not isinstance(dataset.get("files"), dict) or not dataset["files"]:
+        raise ValueError("dataset_verification is not a successful verification report")
+    return {"evidence_bundle_valid": True, "schema": manifest["schema"], "checked_artifacts": 6,
+            "measured_pdf_pages": measured_pages,
+            "measured_video_duration_seconds": measured_duration,
+            "limitations": ["Video duration measurement reads MP4/MOV movie-header metadata; final playback and subtitle review remain human checks.",
+                            "PDF page measurement supports files with explicit page objects and fails closed on unsupported structures.",
+                            "This gate does not prove listener benefit, URL reachability, eligibility, or submission acceptance."]}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("manifest", type=Path)
+    args = parser.parse_args()
+    manifest = json.loads(args.manifest.read_text())
+    print(json.dumps(validate_submission(args.manifest.parent, manifest), sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
