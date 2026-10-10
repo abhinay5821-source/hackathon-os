@@ -27,7 +27,7 @@ class AnnotationUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "package"; package(root)
             page, audio = load_package(root)
-            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Zoom to 3 seconds", b"decodeAudioData", b"click to seek", b"Clear saved progress", b"localStorage", b"Transcript context", b"context_target_offset"):
+            for marker in (b"RepairLab blind annotation", b"Set start", b"Set end", b"prediction_hidden", b"Download completed JSON", b"Zoom to 3 seconds", b"decodeAudioData", b"click to seek", b"Clear saved progress", b"localStorage", b"Transcript context", b"context_target_offset", b"occurrence_number", b"Occurrence"):
                 self.assertIn(marker, page)
             self.assertNotIn(b"start_seconds\":", page)
             self.assertEqual(audio, b"RIFF fake fixture")
@@ -83,6 +83,17 @@ class AnnotationUiTests(unittest.TestCase):
             (root / "transcript.txt").write_text("WE FLY SUN")
             with self.assertRaisesRegex(ValueError, "does not match transcript"):
                 load_package(root)
+
+    def test_marks_repeated_word_occurrence_without_predictions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "package"; package(root)
+            (root / "transcript.txt").write_text("WE FLY WE")
+            data = json.loads((root / "manifest.json").read_text())
+            data["selected_words"][1] = {"word_index": 2, "word": "WE"}
+            (root / "manifest.json").write_text(json.dumps(data))
+            page, _ = load_package(root)
+            self.assertIn(b'"occurrence_number":2', page)
+            self.assertIn(b'"occurrence_total":2', page)
 
     def test_http_serves_page_audio_health_and_404(self):
         with tempfile.TemporaryDirectory() as tmp:
