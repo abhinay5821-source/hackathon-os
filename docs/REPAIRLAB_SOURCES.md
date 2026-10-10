@@ -67,3 +67,21 @@ This adds a second speaker with recording-level evidence; it does not by itself 
 The archived White House item for the 8 May 2014 National Medal for Museum and Library Services remarks labels the specific recording `Public Domain`, links its MP3 and embeds an event transcript. A 28.65-second passage with repeated challenges and a three-part parallel list matched all 75 official normalized words in an independent locator pass and successfully ran through the CPU forced aligner. Exact hashes, runtime, delivery rationale and disagreement limits are in `docs/REPAIRLAB_MICHELLE_ALIGNMENT.md`.
 
 This yields three distinct provisional speakers/texts (Kennedy, Barack Obama and Michelle Obama), but does not turn three excerpts into a credible held-out evaluation. Blind human timing labels and additional excerpts remain required. A screened Biden item remains excluded because its transcript is explicitly “As Prepared for Delivery” and differs from the recording.
+
+## Fourth-speaker precheck candidate: Biden in Nairobi (screened 2026-10-10)
+
+The archived White House page for Vice President Joe Biden's 9 June 2010 address to university students in Nairobi labels the specific 26:01 recording **Public Domain**, links a downloadable MP3 and embeds a delivered-remarks transcript on the same page:
+
+- Official recording/transcript page: https://obamawhitehouse.archives.gov/photos-and-video/video/vice-president-biden-speaks-kenya?page=5
+
+This is a stronger precheck candidate than the previously excluded National Defense University item because the latter labels its text “As Prepared for Delivery.” The Nairobi page presents the transcript with delivered-speech markers, including laughter and applause, but exact audio/text agreement must still be measured rather than assumed.
+
+Provisional delivery rationale: it is a sustained formal address to university students with explicit audience interaction and policy explanation, offering observable transitions and pause/emphasis choices. That is a hypothesis for expert-delivery suitability, not listener validation or a claim that the style is universally ideal.
+
+No audio was downloaded and no alignment result is claimed in this screening increment. Before admission: retrieve the official MP3, record byte hash/duration, locate a short prose passage, verify every normalized word against audio, and run the same blind-boundary protocol. Keep this source out of the frozen dataset until those checks pass.
+
+## Screened but not admitted (2026-10-10)
+
+- Dr. Jill Biden's 4 August 2014 U.S.-Africa Leaders Summit recording is labelled Public Domain and offers MP3 download, but a matching delivered transcript was not located in this screen. Hold, do not infer text from captions or prepared materials.
+- Biden's 18 February 2010 National Defense University page has recording-specific Public Domain metadata and audio, but its linked text is explicitly “As Prepared for Delivery.” It remains excluded until a transcript-matched excerpt is independently established.
+- Additional Barack Obama archive recordings are well documented, but adding the same speaker does not resolve the present speaker-holdout bottleneck.
