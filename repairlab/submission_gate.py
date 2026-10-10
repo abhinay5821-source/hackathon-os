@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -31,6 +32,17 @@ def _artifact(root, record, name):
     if not isinstance(digest, str) or digest != _sha(path):
         raise ValueError(f"{name} artifact SHA-256 mismatch")
     return path
+
+
+def _pdf_page_count(path):
+    """Count explicit PDF page objects; fail closed on unsupported/empty files."""
+    data = path.read_bytes()
+    if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
+        raise ValueError("technical_document is not a structurally recognizable PDF")
+    pages = len(re.findall(rb"/Type\s*/Page\b", data))
+    if pages < 1:
+        raise ValueError("technical_document has no explicit PDF page objects")
+    return pages
 
 
 def _finite_number(value, name, minimum=0.0, maximum=None):
@@ -107,6 +119,9 @@ def validate_submission(root, manifest):
     rubric_path = _artifact(root, artifacts.get("rubric_config"), "rubric_config")
     if document.suffix.lower() != ".pdf":
         raise ValueError("technical_document must be a PDF")
+    measured_pages = _pdf_page_count(document)
+    if measured_pages != pages:
+        raise ValueError("technical_document_pages does not match measured PDF pages")
     alignment = json.loads(alignment_path.read_text())
     held = json.loads(held_path.read_text())
     dataset = json.loads(dataset_path.read_text())
@@ -117,7 +132,9 @@ def validate_submission(root, manifest):
     if dataset.get("verified") is not True or not isinstance(dataset.get("files"), dict) or not dataset["files"]:
         raise ValueError("dataset_verification is not a successful verification report")
     return {"evidence_bundle_valid": True, "schema": manifest["schema"], "checked_artifacts": 5,
-            "limitations": ["PDF page count and video duration remain manifest declarations and must be checked against rendered media.",
+            "measured_pdf_pages": measured_pages,
+            "limitations": ["Video duration remains a manifest declaration and must be checked against the rendered media.",
+                            "PDF page measurement supports files with explicit page objects and fails closed on unsupported structures.",
                             "This gate does not prove listener benefit, URL reachability, eligibility, or submission acceptance."]}
 
 
