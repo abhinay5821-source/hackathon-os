@@ -102,6 +102,7 @@ def evaluate_alignment(prediction, reference, manifest=None):
 
     boundaries = starts + ends
     return {
+        "schema": "repairlab-human-alignment-score-v1",
         "labelled_words": len(labelled),
         "labelled_fraction": len(labelled) / len(predicted),
         "start_mae_seconds": statistics.fmean(starts),
