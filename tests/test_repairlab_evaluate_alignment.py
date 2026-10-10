@@ -29,6 +29,18 @@ def reference():
     }
 
 
+def manifest():
+    labels = reference()
+    return {
+        "format": "repairlab-blind-annotation-v1",
+        "audio_sha256": "a" * 64,
+        "duration_seconds": 2.0,
+        "prediction_included": False,
+        "selected_words": [{"word_index": item["word_index"], "word": item["word"]}
+                           for item in labels["words"]],
+    }
+
+
 class AlignmentEvaluationTests(unittest.TestCase):
     def test_metrics_for_labelled_subset(self):
         result = evaluate_alignment(prediction(), reference())
@@ -71,3 +83,23 @@ class AlignmentEvaluationTests(unittest.TestCase):
         labels["duration_seconds"] = 2.1
         with self.assertRaisesRegex(ValueError, "duration_seconds do not match"):
             evaluate_alignment(prediction(), labels)
+
+    def test_accepts_exact_predeclared_blind_selection(self):
+        result = evaluate_alignment(prediction(), reference(), manifest())
+        self.assertEqual(result["labelled_words"], 2)
+
+    def test_rejects_post_hoc_word_selection(self):
+        plan = manifest()
+        plan["selected_words"].reverse()
+        with self.assertRaisesRegex(ValueError, "predeclared manifest selection"):
+            evaluate_alignment(prediction(), reference(), plan)
+
+    def test_rejects_nonblind_or_wrong_audio_manifest(self):
+        plan = manifest()
+        plan["prediction_included"] = True
+        with self.assertRaisesRegex(ValueError, "prediction_included false"):
+            evaluate_alignment(prediction(), reference(), plan)
+        plan = manifest()
+        plan["audio_sha256"] = "b" * 64
+        with self.assertRaisesRegex(ValueError, "audio_sha256 do not match"):
+            evaluate_alignment(prediction(), reference(), plan)
