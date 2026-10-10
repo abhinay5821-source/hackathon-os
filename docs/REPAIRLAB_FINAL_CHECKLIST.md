@@ -24,6 +24,14 @@ Status meanings: **done** = evidence exists; **blocked** = external/manual evide
 
 Do not describe the entry as submission-ready while any required row remains blocked or open.
 
+Before making a readiness claim, assemble the hashed evidence manifest and run:
+
+```sh
+python -m repairlab.submission_gate submission/manifest.json
+```
+
+The manifest schema is `repairlab-track-c-submission-v1`. It must declare public HTTPS dataset and video URLs, the actual technical-document page count, video duration and English/subtitle status, plus bundle-relative paths and SHA-256 values for the PDF, human-alignment report, frozen held-out report and dataset-verification report. A passing result is a packaging-integrity check, not proof of listener benefit, eligibility or acceptance.
+
 ## Required release order
 
 1. Pass and record the Windows annotation-control check.
